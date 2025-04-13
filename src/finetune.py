@@ -13,15 +13,24 @@ from dataclasses import dataclass
 import torch
 import numpy as np
 import jiwer
+import re
 
 dotenv.load_dotenv()
 
 
 def load_data_from_hf(dataset_name: str) -> Dataset:
     """Load the dataset from huggingface"""
-    dataset = load_dataset(dataset_name)
-    dataset = dataset.rename_column("transcription", "text")
+    username = "ctaguchi"
+    dataset = load_dataset(f"{username}/{dataset_name}")
     return dataset["train"]
+
+
+def remove_tags(batch: Dict[str, str | dict]) -> dict:
+    """Count the total number of characters in an eaf annotation.
+    Ignore whitespaces.
+    """
+    batch["text"] = re.sub(r"</?(ja|dis|unsure)>", "", batch["text"])
+    return batch
 
 
 def make_vocab(dataset: Dataset):
@@ -178,6 +187,25 @@ def get_args() -> argparse.Namespace:
         default="wav2vec2-xls-r-300m-ikema",
         help="The name of the repository to use",
     )
+    parser.add_argument(
+        "--script",
+        type=str,
+        choices=["kana", "romaji", "phoneme"],
+        default="kana",
+        help="The writing system of the transcription."
+    )
+    parser.add_argument(
+        "--num_proc",
+        type=int,
+        default=8,
+        help="Number of CPUs."
+    )
+    parser.add_argument(
+        "--wandb_run_name",
+        type=str,
+        default="ikema-asr",
+        help="WandB run name."
+    )
 
     return parser.parse_args()
 
@@ -186,6 +214,18 @@ if __name__ == "__main__":
     args = get_args()
 
     dataset = load_data_from_hf(args.dataset)
+    print("Loaded dataset:", args.dataset)
+    print("Dataset size:", len(dataset))
+    
+    if args.script == "kana":
+        dataset = dataset.rename_column("transcription", "text")
+    elif args.script == "romaji":
+        dataset = dataset.rename_column("romaji", "text")
+    elif args.script == "phoneme":
+        dataset = dataset.rename_column("phoneme", "text")
+
+    dataset = dataset.map(remove_tags,
+                          num_proc=args.num_proc)
 
     vocab_file = prepare_vocab(dataset)
 
@@ -234,7 +274,7 @@ if __name__ == "__main__":
         group_by_length=True,
         per_device_train_batch_size=16,
         gradient_accumulation_steps=2,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         num_train_epochs=30,
         gradient_checkpointing=True,
         fp16=True,
@@ -245,7 +285,8 @@ if __name__ == "__main__":
         warmup_steps=100,
         save_total_limit=2,
         push_to_hub=True,
-        report_to="wandb"
+        report_to="wandb",
+        run_name=args.wandb_run_name,
     )
 
     dataset_dict = dataset.train_test_split(test_size=0.1)
@@ -261,3 +302,8 @@ if __name__ == "__main__":
         eval_dataset=valid,
         tokenizer=processor.feature_extractor,
     )
+
+    trainer.train()
+    trainer.evaluate()
+    trainer.save_state()
+    trainer.save_model()
