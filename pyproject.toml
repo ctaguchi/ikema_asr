@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "ikema-asr"
+version = "0.1.0"
+description = "ASR for Ikema."
+authors = ["Chihiro Taguchi"]
+license = "Private"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+silero-vad = "^5.1.2"
+torchaudio = "^2.6.0"
+pympi-ling = "^1.70.2"
+tqdm = "^4.67.1"
+datasets = "^3.5.0"
+pydub = "^0.25.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
