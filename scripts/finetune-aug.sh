@@ -8,11 +8,12 @@
 
 cd ../src/
 
+export HF_HOME="/afs/crc.nd.edu/group/nlp/07/ctaguchi/.cache/"
+
 module load python
 poetry run python finetune.py \
-       --dataset ikema_youtube_asr \
-       --epoch 150 \
+       --dataset ikema_youtube_asr_aug \
        --script romaji \
-       --wandb_run_name ikema-asr-youtube-romaji
+       --wandb_run_name ikema-asr-youtube-aug-romaji
     
 cd -

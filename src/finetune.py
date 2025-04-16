@@ -14,6 +14,7 @@ import torch
 import numpy as np
 import jiwer
 import re
+import os
 
 dotenv.load_dotenv()
 
@@ -182,6 +183,12 @@ def get_args() -> argparse.Namespace:
         help="The name of the model to use",
     )
     parser.add_argument(
+        "--epoch",
+        type=int,
+        default=30,
+        help="Number of epochs to run.",
+    )
+    parser.add_argument(
         "--repo_name",
         type=str,
         default="wav2vec2-xls-r-300m-ikema",
@@ -285,6 +292,7 @@ if __name__ == "__main__":
         warmup_steps=100,
         save_total_limit=2,
         push_to_hub=True,
+        hub_token=os.environ["HF_TOKEN"],
         report_to="wandb",
         run_name=args.wandb_run_name,
     )
@@ -307,3 +315,6 @@ if __name__ == "__main__":
     trainer.evaluate()
     trainer.save_state()
     trainer.save_model()
+
+    model.push_to_hub(args.repo_name, use_auth_token=os.environ["HF_TOKEN"])
+    tokenizer.push_to_hub(args.repo_name, use_auth_token=os.environ["HF_TOKEN"])
