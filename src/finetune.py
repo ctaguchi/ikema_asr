@@ -282,7 +282,7 @@ if __name__ == "__main__":
         per_device_train_batch_size=16,
         gradient_accumulation_steps=2,
         eval_strategy="steps",
-        num_train_epochs=30,
+        num_train_epochs=args.epoch,
         gradient_checkpointing=True,
         fp16=True,
         save_steps=100,
