@@ -177,6 +177,12 @@ def get_args() -> argparse.Namespace:
         help="The name of the dataset to use",
     )
     parser.add_argument(
+        "--eval_dataset",
+        type=str,
+        default="ikema_youtube_asr_test",
+        help="The evaluation (validation) dataset."
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default="facebook/wav2vec2-xls-r-300m",
@@ -223,6 +229,10 @@ if __name__ == "__main__":
     dataset = load_data_from_hf(args.dataset)
     print("Loaded dataset:", args.dataset)
     print("Dataset size:", len(dataset))
+
+    eval_dataset = load_data_from_hf(args.eval_dataset)
+    print("Loaded eval dataset:", args.dataset)
+    print("Eval dataset size:", len(eval_dataset))
     
     if args.script == "kana":
         dataset = dataset.rename_column("transcription", "text")
@@ -297,17 +307,17 @@ if __name__ == "__main__":
         run_name=args.wandb_run_name,
     )
 
-    dataset_dict = dataset.train_test_split(test_size=0.1)
-    train = dataset_dict["train"]
-    valid = dataset_dict["test"]
+    # dataset_dict = dataset.train_test_split(test_size=0.1)
+    # train = dataset_dict["train"]
+    # valid = dataset_dict["test"]
 
     trainer = Trainer(
         model=model,
         data_collator=data_collator,
         args=training_args,
         compute_metrics=compute_metrics,
-        train_dataset=train,
-        eval_dataset=valid,
+        train_dataset=dataset,
+        eval_dataset=eval_dataset,
         tokenizer=processor.feature_extractor,
     )
 
@@ -316,5 +326,7 @@ if __name__ == "__main__":
     trainer.save_state()
     trainer.save_model()
 
-    model.push_to_hub(args.repo_name, use_auth_token=os.environ["HF_TOKEN"])
-    tokenizer.push_to_hub(args.repo_name, use_auth_token=os.environ["HF_TOKEN"])
+    model.push_to_hub(args.repo_name,
+                      use_auth_token=os.environ["HF_TOKEN"])
+    tokenizer.push_to_hub(args.repo_name,
+                          use_auth_token=os.environ["HF_TOKEN"])
