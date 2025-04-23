@@ -285,6 +285,8 @@ if __name__ == "__main__":
         pad_token_id=processor.tokenizer.pad_token_id,
         vocab_size=len(processor.tokenizer),
     )
+    
+    model.freeze_feature_encoder() # prevents overfitting, faster training
 
     training_args = TrainingArguments(
         output_dir=args.repo_name,
