@@ -236,13 +236,18 @@ if __name__ == "__main__":
     
     if args.script == "kana":
         dataset = dataset.rename_column("transcription", "text")
+        eval_dataset = eval_dataset.rename_column("transcription", "text")
     elif args.script == "romaji":
         dataset = dataset.rename_column("romaji", "text")
+        eval_dataset = eval_dataset.rename_column("romaji", "text")
     elif args.script == "phoneme":
         dataset = dataset.rename_column("phoneme", "text")
+        eval_dataset = eval_dataset.rename_column("phoneme", "text")
 
     dataset = dataset.map(remove_tags,
                           num_proc=args.num_proc)
+    eval_dataset = eval_dataset.map(remove_tags,
+                                    num_proc=args.num_proc)
 
     vocab_file = prepare_vocab(dataset)
 
@@ -268,6 +273,8 @@ if __name__ == "__main__":
     
     dataset = dataset.map(prepare_dataset,
                           remove_columns=dataset.column_names)
+    eval_dataset = eval_dataset.map(prepare_dataset,
+                                    remove_columns=eval_dataset.column_names)
     
     data_collator = DataCollatorCTCWithPadding(
         processor=processor,
