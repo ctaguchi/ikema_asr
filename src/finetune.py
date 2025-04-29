@@ -195,6 +195,11 @@ def get_args() -> argparse.Namespace:
         help="Number of epochs to run.",
     )
     parser.add_argument(
+        "--freeze_feature_encoder",
+        action="store_true",
+        help="Whether to freeze the feature encoder.",
+    )
+    parser.add_argument(
         "--repo_name",
         type=str,
         default="wav2vec2-xls-r-300m-ikema",
@@ -293,7 +298,8 @@ if __name__ == "__main__":
         vocab_size=len(processor.tokenizer),
     )
     
-    model.freeze_feature_encoder() # prevents overfitting, faster training
+    if args.freeze_feature_encoder:
+        model.freeze_feature_encoder() # prevents overfitting, faster training
 
     training_args = TrainingArguments(
         output_dir=args.repo_name,

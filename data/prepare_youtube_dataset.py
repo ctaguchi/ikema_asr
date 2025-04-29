@@ -14,6 +14,12 @@ import json
 from utils import hiragana_to_romaji, hiragana_to_phoneme
 
 
+TEST_AUDIO = {
+    "jugon",
+    "mimamuibusu"
+}
+
+
 def get_wav_eaf_pairs(audio_dir: str) -> List[Dict[str, str]]:
     """Get pairs of wav and eaf files."""
     sub_dirs = glob.glob(os.path.join(audio_dir, "*"))
@@ -59,14 +65,12 @@ def get_transcription(eaf_file: str | List[str],
     return annotations
 
 
-TAGS = ["ja", "dis", "unsure"]
+# TAGS = ["ja", "dis", "unsure"]
 
 
-def remove_tags(text: str,
-                tags: List[str]) -> str:
+def remove_tags(text: str) -> str:
     """Remove XML tags from text."""
-    for tag in tags:
-        text = text.replace(f"<{tag}>", "").replace(f"</{tag}>", "")
+    text = re.sub(r"</?(ja|dis|unsure)>", "", text)
     
     # Remove extra spaces
     text = re.sub(r"\s+", " ", text)
@@ -103,7 +107,7 @@ def make_audio_data_from_splits(audio: AudioSegment,
         segment.export(segment_path, format="wav")
         
         # Clean the transcription
-        transcription = remove_tags(transcription, TAGS)
+        transcription = remove_tags(transcription)
         romaji = hiragana_to_romaji(transcription, romaji_mapping)
         phoneme = hiragana_to_phoneme(transcription, phoneme_mapping)
         
@@ -115,6 +119,115 @@ def make_audio_data_from_splits(audio: AudioSegment,
         starts.append(start)
         ends.append(end)
         titles.append(audio_name)
+        
+    audio_data = {
+        "audio": audios,
+        "transcription": transcriptions,
+        "romaji": romajis,
+        "phoneme": phonemes,
+        "start": starts,
+        "end": ends,
+        "title": titles
+    }
+    
+    return audio_data
+
+
+def make_audio_data_from_splits_combining(audio: AudioSegment,
+                                          annotations: List[Dict[str, str | int]],
+                                          segments_subdir: str,
+                                          audio_name: str,
+                                          romaji_mapping: dict,
+                                          phoneme_mapping: dict,
+                                          max_duration: int) -> dict:
+    """
+    Create a dictionary of audio data from the splits with recursive augmentation by combining adjacent segments
+    until the total duration reaches or exceeds max_duration.
+
+    For each starting segment, the function:
+      1. Saves the segment if its duration is less than max_duration.
+      2. Recursively combines the segment with the next adjacent segments until the combined duration is >= max_duration.
+      3. Saves every intermediate combined audio.
+      4. Moves on to the next starting segment.
+
+    Args:
+        audio: The complete AudioSegment.
+        annotations: A list of dictionaries, each containing 'start', 'end', and 'transcription' for one segment.
+        segments_subdir: Directory where the exported audio segments will be saved.
+        audio_name: Base name for the audio file segments.
+        romaji_mapping: Mapping for converting Hiragana to Romaji.
+        phoneme_mapping: Mapping for converting Hiragana to phoneme.
+        max_duration: The maximum duration (in milliseconds) to reach when combining segments.
+    
+    Returns:
+        A dictionary containing lists for audio paths, transcriptions, romaji, phoneme, start and end times, and titles.
+    """
+    audios = []
+    transcriptions = []
+    romajis = []
+    phonemes = []
+    starts = []
+    ends = []
+    titles = []
+    
+    # Assumes annotations are sorted by the 'start' time.
+    n = len(annotations)
+    for i in tqdm(range(n), desc="Processing segments"):
+        # Start with the current segment as the base candidate.
+        base_annotation = annotations[i]
+        base_start = base_annotation["start"]
+        base_end = base_annotation["end"]
+        base_audio =  audio[base_start:base_end]
+        base_transcription = remove_tags(base_annotation["transcription"])
+        
+        current_duration = base_end - base_start
+        romaji = hiragana_to_romaji(base_transcription, romaji_mapping)  
+        phoneme = hiragana_to_phoneme(base_transcription, phoneme_mapping)
+        
+        # Save the current candidate.
+        segment_name = f"{audio_name}_{base_start}_{base_end}.wav"
+        segment_path = os.path.join(segments_subdir, segment_name)
+        base_audio.export(segment_path, format="wav")
+        
+        audios.append(segment_path)
+        transcriptions.append(base_transcription)
+        romajis.append(romaji)
+        phonemes.append(phoneme)
+        starts.append(base_start)
+        ends.append(base_end)
+        titles.append(audio_name)
+        
+        # recursively combine with adjacent segments
+        j = i + 1
+        combined_transcription = base_transcription
+        while j < n:
+            # current_duration < max_duration and j < n:
+            next_annotation = annotations[j]
+            next_start = next_annotation["start"]
+            next_end = next_annotation["end"]
+            combined_duration = next_end - base_start
+            if combined_duration >= max_duration:
+                break
+            
+            combined_audio = audio[base_start:next_end]
+            next_transcription = remove_tags(next_annotation["transcription"])
+            combined_transcription += (" " + next_transcription)
+            combined_romaji = hiragana_to_romaji(combined_transcription, romaji_mapping)
+            combined_phoneme = hiragana_to_phoneme(combined_transcription, phoneme_mapping)
+            
+            combined_segment_name = f"{audio_name}_{base_start}_{next_end}.wav"
+            combined_segment_path = os.path.join(segments_subdir, combined_segment_name)
+            combined_audio.export(combined_segment_path, format="wav")
+            
+            audios.append(combined_segment_path)
+            transcriptions.append(combined_transcription)
+            romajis.append(combined_romaji)
+            phonemes.append(combined_phoneme)
+            starts.append(base_start)
+            ends.append(next_end)
+            titles.append(audio_name)
+            
+            j += 1
         
     audio_data = {
         "audio": audios,
@@ -180,6 +293,22 @@ def get_args() -> argparse.Namespace:
             "Make sure to create the repo on Hugging Face before uploading."
         )
     )
+    parser.add_argument(
+        "--test_repo_name",
+        type=str,
+        default="ikema_youtube_asr_test",
+        help="The name of the repository to use for uploading the test dataset to Hugging Face."
+    )
+    parser.add_argument(
+        "--augment_combine",
+        action='store_true',
+        help="Augment the audio data by combining adjacent segments."
+    )
+    parser.add_argument(
+        "--save_testdata_only",
+        action='store_true',
+        help="Only save the test dataset."
+    )
 
     return parser.parse_args()
 
@@ -210,6 +339,16 @@ if __name__ == "__main__":
         "end": [],
         "title": []
     }
+    
+    test_dataset_dict = {
+        "audio": [],
+        "transcription": [],
+        "romaji": [],
+        "phoneme": [],
+        "start": [],
+        "end": [],
+        "title": []
+    }
         
     for pair in wav_eaf_pairs:
         wav_file = pair["wav"]
@@ -218,10 +357,17 @@ if __name__ == "__main__":
         audio = AudioSegment.from_wav(wav_file)
         audio_name = os.path.basename(wav_file)
         audio_name = os.path.splitext(audio_name)[0]
+        
+        if args.save_testdata_only and audio_name not in TEST_AUDIO:
+            print(f"Skipping {audio_name} as it is not in the test audio list.")
+            continue
+        
         print(f"Processing {audio_name}...")
         
         segments_subdir = os.path.join(segments_dir, audio_name)
         os.makedirs(segments_subdir, exist_ok=True)
+        
+        
         
         # Get the transcription
         if audio_name == "kaichou_shokureki":
@@ -312,14 +458,15 @@ if __name__ == "__main__":
             dataset_dict["end"].extend(data_hiroyuki["end"])
             dataset_dict["title"].extend(data_hiroyuki["title"])
             
-        else:
-            # Get the transcription
-            transcription_tier = "default"
+        elif audio_name == "sinatui":
+            # TODO
+            continue
+        
+        elif audio_name in TEST_AUDIO:
+            # transcription_tier = "default"
+            transcription_tier = "sentence"
             annotations = get_transcription(eaf_file,
                                             transcription_tier=transcription_tier)
-            if not annotations:
-                print(f"No annotations found in {eaf_file}. Skipping.")
-                continue
             
             data = make_audio_data_from_splits(
                 audio=audio,
@@ -329,6 +476,47 @@ if __name__ == "__main__":
                 romaji_mapping=romaji_mapping,
                 phoneme_mapping=phoneme_mapping
             )
+            
+            # combine the data
+            test_dataset_dict["audio"].extend(data["audio"])
+            test_dataset_dict["transcription"].extend(data["transcription"])
+            test_dataset_dict["romaji"].extend(data["romaji"])
+            test_dataset_dict["phoneme"].extend(data["phoneme"])
+            test_dataset_dict["start"].extend(data["start"])
+            test_dataset_dict["end"].extend(data["end"])
+            test_dataset_dict["title"].extend(data["title"])
+            print(f"Processed {audio_name} with {len(data['audio'])} segments.")
+            
+        else:
+            # Get the transcription
+            transcription_tier = "default"
+            annotations = get_transcription(eaf_file,
+                                            transcription_tier=transcription_tier)
+            if not annotations:
+                print(f"No annotations found in {eaf_file}. Skipping.")
+                continue
+            
+            if args.augment_combine:
+                # Combine adjacent segments
+                data = make_audio_data_from_splits_combining(
+                    audio=audio,
+                    annotations=annotations,
+                    segments_subdir=segments_subdir,
+                    audio_name=audio_name,
+                    romaji_mapping=romaji_mapping,
+                    phoneme_mapping=phoneme_mapping,
+                    max_duration=15000  # 15 seconds
+                )
+            else:
+                # Process segments separately
+                data = make_audio_data_from_splits(
+                    audio=audio,
+                    annotations=annotations,
+                    segments_subdir=segments_subdir,
+                    audio_name=audio_name,
+                    romaji_mapping=romaji_mapping,
+                    phoneme_mapping=phoneme_mapping
+                )
 
             # Tests
             assert len(data["audio"]) == len(data["transcription"]), \
@@ -350,15 +538,36 @@ if __name__ == "__main__":
             dataset_dict["title"].extend(data["title"])
             
             print(f"Processed {audio_name} with {len(data['audio'])} segments.")
+            
+    # Create the test data
+    test_dataset = Dataset.from_dict(test_dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
+    
+    if args.save_testdata_only:
+        # Save the test dataset only
+        test_dataset.save_to_disk(args.test_repo_name)
+        print(f"Test dataset saved locally at: {args.test_repo_name}")
+        if args.push_to_hub:
+            test_dataset.push_to_hub(args.test_repo_name)
+            print(f"Test dataset uploaded to Hugging Face Hub at: {args.test_repo_name}")
+        exit(0)
         
     # Create an audio dataset
     audio_dataset = Dataset.from_dict(dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
     
+    
+    
     if args.push_to_hub:
         # Upload the dataset to Hugging Face Hub
         audio_dataset.push_to_hub(args.repo_name)
-        print(f"Dataset uploaded to Hugging Face Hub at: {args.repo_name}")
+        print(f"Training dataset uploaded to Hugging Face Hub at: {args.repo_name}")
+        
+        audio_dataset.push_to_hub(args.test_repo_name)
+        print(f"Test dataset uploaded to Hugging Face Hub at: {args.test_repo_name}")
+        
     else:
         # Save locally
         audio_dataset.save_to_disk(args.repo_name)
-        print(f"Dataset saved locally at: {args.repo_name}")
+        print(f"Training dataset saved locally at: {args.repo_name}")
+        
+        test_dataset.save_to_disk(args.test_repo_name)
+        print(f"Test dataset saved locally at: {args.test_repo_name}")
