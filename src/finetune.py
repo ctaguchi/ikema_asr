@@ -8,6 +8,7 @@ from transformers import (Wav2Vec2CTCTokenizer,
                           Wav2Vec2ForCTC,
                           TrainingArguments,
                           Trainer)
+from audiomentations import Compose, PitchShift, AddBackgroundNoise, TimeStretch
 from typing import Union, Optional, Any, Dict, List
 from dataclasses import dataclass
 import torch
@@ -64,11 +65,15 @@ def prepare_vocab(dataset: Dataset) -> str:
     return vocab_file
 
 
-def prepare_dataset(batch: dict) -> dict:
+def prepare_dataset(batch: dict,
+                    augmentor) -> dict:
     """Prepare the dataset for the training.
     Add `input_values` and `labels` to the dataset.
     """
     audio = batch["audio"]
+    if augmentor is not None: # data augmentation
+        audio["array"] = augmentor(samples=audio["array"],
+                                   sample_rate=audio["sampling_rate"])
 
     batch["input_values"] = processor(
         audio["array"],
@@ -170,6 +175,7 @@ class DataCollatorCTCWithPadding:
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    # Dataset group
     parser.add_argument(
         "--dataset",
         type=str,
@@ -182,6 +188,49 @@ def get_args() -> argparse.Namespace:
         default="ikema_youtube_asr_test",
         help="The evaluation (validation) dataset."
     )
+    
+    # Data augmentation group
+    parser.add_argument(
+        "--pitch_shift",
+        action="store_true",
+        help="Whether to apply pitch shift.",
+    )
+    parser.add_argument(
+        "--min_semitones",
+        type=float,
+        default=0.0,
+        help="Minimum semitones for pitch shift (lowering).",
+    )
+    parser.add_argument(
+        "--max_semitones",
+        type=float,
+        default=10.0,
+        help="Maximum semitones for pitch shift (raising).",
+    )
+    parser.add_argument(
+        "--time_stretch",
+        action="store_true",
+        help="Whether to apply time stretch.",
+    )
+    parser.add_argument(
+        "--min_rate",
+        type=float,
+        default=0.8,
+        help="Minimum rate for time stretch.",
+    )
+    parser.add_argument(
+        "--max_rate",
+        type=float,
+        default=1.25,
+        help="Maximum rate for time stretch.",
+    )
+    parser.add_argument(
+        "--add_background_noise",
+        action="store_true",
+        help="Whether to apply background noise.",
+    )
+    
+    # Training group
     parser.add_argument(
         "--model",
         type=str,
@@ -199,6 +248,8 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Whether to freeze the feature encoder.",
     )
+    
+    # Misc group
     parser.add_argument(
         "--repo_name",
         type=str,
@@ -276,7 +327,19 @@ if __name__ == "__main__":
         tokenizer=tokenizer
     )
     
+    augment_methods = [
+        AddBackgroundNoise(sounds_path="../data/background_noise") if args.add_background_noise else None,
+        PitchShift(min_semitones=args.min_semitones,
+                    max_semitones=args.max_semitones,
+                    p=args.pitch_shift) if args.pitch_shift else None,
+        TimeStretch(min_rate=args.min_rate,
+                    max_rate=args.max_rate,
+                    p=args.time_stretch) if args.time_stretch else None
+    ]
+    augmentor = Compose([method for method in augment_methods if method is not None])
+    
     dataset = dataset.map(prepare_dataset,
+                          fn_kwargs={"augmentor": augmentor},
                           remove_columns=dataset.column_names)
     eval_dataset = eval_dataset.map(prepare_dataset,
                                     remove_columns=eval_dataset.column_names)
