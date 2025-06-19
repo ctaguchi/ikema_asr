@@ -27,6 +27,10 @@ def load_data_from_hf(dataset_name: str) -> Dataset:
     return dataset["train"]
 
 
+def generate_data() -> Dataset:
+    ...
+
+
 def remove_tags(batch: Dict[str, str | dict]) -> dict:
     """Count the total number of characters in an eaf annotation.
     Ignore whitespaces.
@@ -187,6 +191,11 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="ikema_youtube_asr_test",
         help="The evaluation (validation) dataset."
+    )
+    parser.add_argument(
+        "--generate_dataset",
+        action="store_true",
+        help="Generate a dataset upon training instead of loading from HF"
     )
     
     # Data augmentation group

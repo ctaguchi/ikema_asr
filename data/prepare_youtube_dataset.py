@@ -1,4 +1,4 @@
-from datasets import Audio, Dataset
+from datasets import Audio, Dataset, DatasetDict
 import os
 import glob
 import pandas as pd
@@ -65,12 +65,9 @@ def get_transcription(eaf_file: str | List[str],
     return annotations
 
 
-# TAGS = ["ja", "dis", "unsure"]
-
-
 def remove_tags(text: str) -> str:
     """Remove XML tags from text."""
-    text = re.sub(r"</?(ja|dis|unsure)>", "", text)
+    text = re.sub(r"</?(ja|dis|unsure|song)>", "", text)
     
     # Remove extra spaces
     text = re.sub(r"\s+", " ", text)
@@ -242,10 +239,323 @@ def make_audio_data_from_splits_combining(audio: AudioSegment,
     return audio_data
 
 
-def convert_to_romaji(text: str,
-                      mapping: dict) -> str:
-    """Convert kana to romaji."""
+def prepare_format(dataset: dict,
+                   audio,
+                   segments_subdir: str,
+                   audio_name: str,
+                   romaji_mapping: dict,
+                   phoneme_mapping: dict,
+                   eaf_file: str,
+                   transcription_tier: str = "sentence") -> dict:
+    """Prepare the dataset format."""
+    annotations = get_transcription(eaf_file,
+                                    transcription_tier=transcription_tier)
     
+    data = make_audio_data_from_splits(
+        audio=audio,
+        annotations=annotations,
+        segments_subdir=segments_subdir,
+        audio_name=audio_name,
+        romaji_mapping=romaji_mapping,
+        phoneme_mapping=phoneme_mapping
+    )
+    
+    # combine the data
+    dataset["audio"].extend(data["audio"])
+    dataset["transcription"].extend(data["transcription"])
+    dataset["romaji"].extend(data["romaji"])
+    dataset["phoneme"].extend(data["phoneme"])
+    dataset["start"].extend(data["start"])
+    dataset["end"].extend(data["end"])
+    dataset["title"].extend(data["title"])
+    print(f"Processed {audio_name} with {len(data['audio'])} segments.")
+    return dataset
+
+
+def generate_dataset(audio_dir: str,
+                     romaji_map_file: str,
+                     phoneme_map_file: str,
+                     repo_name: str,
+                     test_repo_name: str,
+                     save_testdata_only: bool,
+                     push_to_hub: bool,
+                     validation_set: str = "jugon",
+                     test_set: str = "mimamuibusu",
+                     return_datasetdict: bool = False,
+                     ) -> None | Dataset:
+    """Generate a dataset from local wav/eaf files."""
+    with open(romaji_map_file, "r") as f:
+        romaji_mapping = json.load(f)
+    with open(phoneme_map_file, "r") as f:
+        phoneme_mapping = json.load(f)
+        
+    wav_eaf_pairs = get_wav_eaf_pairs(audio_dir)
+    if not wav_eaf_pairs:
+        print("No valid wav-eaf pairs found. Exiting.")
+        exit(1)
+    
+    # Make a new dir for the segments    
+    segments_dir = os.path.join(audio_dir, "segments")
+    os.makedirs(segments_dir, exist_ok=True)
+    
+    dataset_dict = {
+        "audio": [],
+        "transcription": [],
+        "romaji": [],
+        "phoneme": [],
+        "start": [],
+        "end": [],
+        "title": []
+    }
+    
+    valid_dataset_dict = {
+        "audio": [],
+        "transcription": [],
+        "romaji": [],
+        "phoneme": [],
+        "start": [],
+        "end": [],
+        "title": []
+    }
+    
+    test_dataset_dict = {
+        "audio": [],
+        "transcription": [],
+        "romaji": [],
+        "phoneme": [],
+        "start": [],
+        "end": [],
+        "title": []
+    }
+    
+    for pair in wav_eaf_pairs:
+        wav_file = pair["wav"]
+        eaf_file = pair["eaf"]
+        
+        audio = AudioSegment.from_wav(wav_file)
+        audio_name = os.path.basename(wav_file)
+        audio_name = os.path.splitext(audio_name)[0]
+        
+        if args.save_testdata_only and audio_name not in TEST_AUDIO:
+            print(f"Skipping {audio_name} as it is not in the test audio list.")
+            continue
+        
+        print(f"Processing {audio_name}...")
+        
+        segments_subdir = os.path.join(segments_dir, audio_name)
+        os.makedirs(segments_subdir, exist_ok=True)
+        
+        # Get the transcription
+        if audio_name == "kaichou_shokureki":
+            mono_audios = audio.split_to_mono()
+            
+            # create subdir for tadashi and hiroyuki
+            print("Processing tadashi...")
+            tadashi_subdir = f"{args.audio_dir}/{audio_name}/tadashi"
+            os.makedirs(tadashi_subdir, exist_ok=True)
+            
+            # tadashi
+            tadashi_audio_file = mono_audios[0].export(
+                f"{tadashi_subdir}/{audio_name}_tadashi.wav",
+                format="wav"
+            )
+            tadashi_audio = AudioSegment.from_wav(tadashi_audio_file)
+            annotations_tadashi = get_transcription(
+                eaf_file,
+                transcription_tier="tadashi_segment"
+            )
+            data_tadashi = make_audio_data_from_splits(
+                audio=tadashi_audio,
+                annotations=annotations_tadashi,
+                segments_subdir=segments_subdir,
+                audio_name=f"{audio_name}_tadashi",
+                romaji_mapping=romaji_mapping,
+                phoneme_mapping=phoneme_mapping
+            )
+            
+            # Tests
+            assert len(data_tadashi["audio"]) == len(data_tadashi["transcription"]), \
+                f"Audio and transcription lengths do not match for {audio_name}_tadashi."
+            assert len(data_tadashi["audio"]) == len(data_tadashi["start"]), \
+                f"Audio and start times lengths do not match for {audio_name}_tadashi."
+            assert len(data_tadashi["audio"]) == len(data_tadashi["end"]), \
+                f"Audio and end times lengths do not match for {audio_name}_tadashi."
+            assert len(data_tadashi["audio"]) == len(data_tadashi["title"]), \
+                f"Audio and titles lengths do not match for {audio_name}_tadashi."
+                
+            # Combine the data
+            dataset_dict["audio"].extend(data_tadashi["audio"])
+            dataset_dict["transcription"].extend(data_tadashi["transcription"])
+            dataset_dict["romaji"].extend(data_tadashi["romaji"])
+            dataset_dict["phoneme"].extend(data_tadashi["phoneme"])
+            dataset_dict["start"].extend(data_tadashi["start"])
+            dataset_dict["end"].extend(data_tadashi["end"])
+            dataset_dict["title"].extend(data_tadashi["title"])
+            
+            # hiroyuki
+            print("Processing hiroyuki...")
+            hiroyuki_subdir = f"{args.audio_dir}/{audio_name}/hiroyuki"
+            os.makedirs(hiroyuki_subdir, exist_ok=True)
+            
+            hiroyuki_audio_file = mono_audios[1].export(
+                f"{hiroyuki_subdir}/{audio_name}_hiroyuki.wav",
+                format="wav"
+            )
+            hiroyuki_audio = AudioSegment.from_wav(hiroyuki_audio_file)
+            annotations_hiroyuki = get_transcription(
+                eaf_file,
+                transcription_tier="hiroyuki_segment"
+            )
+            data_hiroyuki = make_audio_data_from_splits(
+                audio=hiroyuki_audio,
+                annotations=annotations_hiroyuki,
+                segments_subdir=segments_subdir,
+                audio_name=f"{audio_name}_hiroyuki",
+                romaji_mapping=romaji_mapping,
+                phoneme_mapping=phoneme_mapping
+            )
+            
+            # Tests
+            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["transcription"]), \
+                f"Audio and transcription lengths do not match for {audio_name}_hiroyuki."
+            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["start"]), \
+                f"Audio and start times lengths do not match for {audio_name}_hiroyuki."
+            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["end"]), \
+                f"Audio and end times lengths do not match for {audio_name}_hiroyuki."
+            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["title"]), \
+                f"Audio and titles lengths do not match for {audio_name}_hiroyuki."
+                
+            # Combine the data
+            dataset_dict["audio"].extend(data_hiroyuki["audio"])
+            dataset_dict["transcription"].extend(data_hiroyuki["transcription"])
+            dataset_dict["romaji"].extend(data_hiroyuki["romaji"])
+            dataset_dict["phoneme"].extend(data_hiroyuki["phoneme"])
+            dataset_dict["start"].extend(data_hiroyuki["start"])
+            dataset_dict["end"].extend(data_hiroyuki["end"])
+            dataset_dict["title"].extend(data_hiroyuki["title"])
+            
+        elif audio_name == "sinatui":
+            # TODO
+            continue
+        
+        elif audio_name == validation_set:
+            valid_dataset_dict = prepare_format(
+                valid_dataset_dict,
+                audio=audio,
+                segments_subdir=segments_subdir,
+                audio_name=audio_name,
+                romaji_mapping=romaji_mapping,
+                phoneme_mapping=phoneme_mapping,
+                eaf_file=eaf_file,
+                transcription_tier="sentence"
+            )
+        
+        elif audio_name == test_set:
+            test_dataset_dict = prepare_format(
+                test_dataset_dict,
+                audio=audio,
+                segments_subdir=segments_subdir,
+                audio_name=audio_name,
+                romaji_mapping=romaji_mapping,
+                phoneme_mapping=phoneme_mapping,
+                eaf_file=eaf_file,
+                transcription_tier="sentence"
+            )
+            
+        else: # training data
+            # Get the transcription
+            transcription_tier = "default"
+            annotations = get_transcription(eaf_file,
+                                            transcription_tier=transcription_tier)
+            if not annotations:
+                print(f"No annotations found in {eaf_file}. Skipping.")
+                continue
+            
+            if args.augment_combine:
+                # Combine adjacent segments
+                data = make_audio_data_from_splits_combining(
+                    audio=audio,
+                    annotations=annotations,
+                    segments_subdir=segments_subdir,
+                    audio_name=audio_name,
+                    romaji_mapping=romaji_mapping,
+                    phoneme_mapping=phoneme_mapping,
+                    max_duration=15000  # 15 seconds
+                )
+            else:
+                # Process segments separately
+                data = make_audio_data_from_splits(
+                    audio=audio,
+                    annotations=annotations,
+                    segments_subdir=segments_subdir,
+                    audio_name=audio_name,
+                    romaji_mapping=romaji_mapping,
+                    phoneme_mapping=phoneme_mapping
+                )
+
+            # Tests
+            assert len(data["audio"]) == len(data["transcription"]), \
+                f"Audio and transcription lengths do not match for {audio_name}."
+            assert len(data["audio"]) == len(data["start"]), \
+                f"Audio and start times lengths do not match for {audio_name}."
+            assert len(data["audio"]) == len(data["end"]), \
+                f"Audio and end times lengths do not match for {audio_name}."
+            assert len(data["audio"]) == len(data["title"]), \
+                f"Audio and titles lengths do not match for {audio_name}."
+                
+            # Combine the data
+            dataset_dict["audio"].extend(data["audio"])
+            dataset_dict["transcription"].extend(data["transcription"])
+            dataset_dict["romaji"].extend(data["romaji"])
+            dataset_dict["phoneme"].extend(data["phoneme"])
+            dataset_dict["start"].extend(data["start"])
+            dataset_dict["end"].extend(data["end"])
+            dataset_dict["title"].extend(data["title"])
+            
+            print(f"Processed {audio_name} with {len(data['audio'])} segments.")
+    
+    # Create dataset splits
+    train_dataset = Dataset.from_dict(dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
+    valid_dataset = Dataset.from_dict(valid_dataset_dict).cast_column("audio", Audio(sampling_rate=16000)) 
+    test_dataset = Dataset.from_dict(test_dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
+    datasetdict = DatasetDict({
+        "train": train_dataset,
+        "validation": valid_dataset,
+        "test": test_dataset
+    })
+    
+    if return_datasetdict:
+        return datasetdict
+    
+    if save_testdata_only:
+        # Save the test dataset only
+        test_dataset.save_to_disk(test_repo_name)
+        print(f"Test dataset saved locally at: {test_repo_name}")
+        if args.push_to_hub:
+            test_dataset.push_to_hub(test_repo_name)
+            print(f"Test dataset uploaded to Hugging Face Hub at: {test_repo_name}")
+        exit(0)
+        
+    if push_to_hub:
+        # Upload the dataset to Hugging Face Hub
+        datasetdict.push_to_hub(repo_name)
+        print(f"Dataset uploaded to Hugging Face Hub at: {repo_name}")
+        
+        # audio_dataset.push_to_hub(repo_name)
+        # print(f"Training dataset uploaded to Hugging Face Hub at: {repo_name}")
+        
+        # audio_dataset.push_to_hub(test_repo_name)
+        # print(f"Test dataset uploaded to Hugging Face Hub at: {test_repo_name}")
+        
+    else:
+        # Save locally
+        datasetdict.save_to_disk(repo_name)
+        
+        # audio_dataset.save_to_disk(repo_name)
+        # print(f"Training dataset saved locally at: {repo_name}")
+        
+        # test_dataset.save_to_disk(test_repo_name)
+        # print(f"Test dataset saved locally at: {test_repo_name}")
     
 
 def get_args() -> argparse.Namespace:
@@ -316,258 +626,3 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
     
-    with open(args.romaji_map_file, "r") as f:
-        romaji_mapping = json.load(f)
-    with open(args.phoneme_map_file, "r") as f:
-        phoneme_mapping = json.load(f)
-    
-    wav_eaf_pairs = get_wav_eaf_pairs(args.audio_dir)
-    if not wav_eaf_pairs:
-        print("No valid wav-eaf pairs found. Exiting.")
-        exit(1)
-    
-    # Make a new dir for the segments    
-    segments_dir = os.path.join(args.audio_dir, "segments")
-    os.makedirs(segments_dir, exist_ok=True)
-    
-    dataset_dict = {
-        "audio": [],
-        "transcription": [],
-        "romaji": [],
-        "phoneme": [],
-        "start": [],
-        "end": [],
-        "title": []
-    }
-    
-    test_dataset_dict = {
-        "audio": [],
-        "transcription": [],
-        "romaji": [],
-        "phoneme": [],
-        "start": [],
-        "end": [],
-        "title": []
-    }
-        
-    for pair in wav_eaf_pairs:
-        wav_file = pair["wav"]
-        eaf_file = pair["eaf"]
-        
-        audio = AudioSegment.from_wav(wav_file)
-        audio_name = os.path.basename(wav_file)
-        audio_name = os.path.splitext(audio_name)[0]
-        
-        if args.save_testdata_only and audio_name not in TEST_AUDIO:
-            print(f"Skipping {audio_name} as it is not in the test audio list.")
-            continue
-        
-        print(f"Processing {audio_name}...")
-        
-        segments_subdir = os.path.join(segments_dir, audio_name)
-        os.makedirs(segments_subdir, exist_ok=True)
-        
-        
-        
-        # Get the transcription
-        if audio_name == "kaichou_shokureki":
-            mono_audios = audio.split_to_mono()
-            
-            # create subdir for tadashi and hiroyuki
-            print("Processing tadashi...")
-            tadashi_subdir = f"{args.audio_dir}/{audio_name}/tadashi"
-            os.makedirs(tadashi_subdir, exist_ok=True)
-            
-            # tadashi
-            tadashi_audio_file = mono_audios[0].export(
-                f"{tadashi_subdir}/{audio_name}_tadashi.wav",
-                format="wav"
-            )
-            tadashi_audio = AudioSegment.from_wav(tadashi_audio_file)
-            annotations_tadashi = get_transcription(
-                eaf_file,
-                transcription_tier="tadashi"
-            )
-            data_tadashi = make_audio_data_from_splits(
-                audio=tadashi_audio,
-                annotations=annotations_tadashi,
-                segments_subdir=segments_subdir,
-                audio_name=f"{audio_name}_tadashi",
-                romaji_mapping=romaji_mapping,
-                phoneme_mapping=phoneme_mapping
-            )
-            
-            # Tests
-            assert len(data_tadashi["audio"]) == len(data_tadashi["transcription"]), \
-                f"Audio and transcription lengths do not match for {audio_name}_tadashi."
-            assert len(data_tadashi["audio"]) == len(data_tadashi["start"]), \
-                f"Audio and start times lengths do not match for {audio_name}_tadashi."
-            assert len(data_tadashi["audio"]) == len(data_tadashi["end"]), \
-                f"Audio and end times lengths do not match for {audio_name}_tadashi."
-            assert len(data_tadashi["audio"]) == len(data_tadashi["title"]), \
-                f"Audio and titles lengths do not match for {audio_name}_tadashi."
-                
-            # Combine the data
-            dataset_dict["audio"].extend(data_tadashi["audio"])
-            dataset_dict["transcription"].extend(data_tadashi["transcription"])
-            dataset_dict["romaji"].extend(data_tadashi["romaji"])
-            dataset_dict["phoneme"].extend(data_tadashi["phoneme"])
-            dataset_dict["start"].extend(data_tadashi["start"])
-            dataset_dict["end"].extend(data_tadashi["end"])
-            dataset_dict["title"].extend(data_tadashi["title"])
-            
-            # hiroyuki
-            print("Processing hiroyuki...")
-            hiroyuki_subdir = f"{args.audio_dir}/{audio_name}/hiroyuki"
-            os.makedirs(hiroyuki_subdir, exist_ok=True)
-            
-            hiroyuki_audio_file = mono_audios[1].export(
-                f"{hiroyuki_subdir}/{audio_name}_hiroyuki.wav",
-                format="wav"
-            )
-            hiroyuki_audio = AudioSegment.from_wav(hiroyuki_audio_file)
-            annotations_hiroyuki = get_transcription(
-                eaf_file,
-                transcription_tier="hiroyuki"
-            )
-            data_hiroyuki = make_audio_data_from_splits(
-                audio=hiroyuki_audio,
-                annotations=annotations_hiroyuki,
-                segments_subdir=segments_subdir,
-                audio_name=f"{audio_name}_hiroyuki",
-                romaji_mapping=romaji_mapping,
-                phoneme_mapping=phoneme_mapping
-            )
-            
-            # Tests
-            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["transcription"]), \
-                f"Audio and transcription lengths do not match for {audio_name}_hiroyuki."
-            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["start"]), \
-                f"Audio and start times lengths do not match for {audio_name}_hiroyuki."
-            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["end"]), \
-                f"Audio and end times lengths do not match for {audio_name}_hiroyuki."
-            assert len(data_hiroyuki["audio"]) == len(data_hiroyuki["title"]), \
-                f"Audio and titles lengths do not match for {audio_name}_hiroyuki."
-                
-            # Combine the data
-            dataset_dict["audio"].extend(data_hiroyuki["audio"])
-            dataset_dict["transcription"].extend(data_hiroyuki["transcription"])
-            dataset_dict["romaji"].extend(data_hiroyuki["romaji"])
-            dataset_dict["phoneme"].extend(data_hiroyuki["phoneme"])
-            dataset_dict["start"].extend(data_hiroyuki["start"])
-            dataset_dict["end"].extend(data_hiroyuki["end"])
-            dataset_dict["title"].extend(data_hiroyuki["title"])
-            
-        elif audio_name == "sinatui":
-            # TODO
-            continue
-        
-        elif audio_name in TEST_AUDIO:
-            # transcription_tier = "default"
-            transcription_tier = "sentence"
-            annotations = get_transcription(eaf_file,
-                                            transcription_tier=transcription_tier)
-            
-            data = make_audio_data_from_splits(
-                audio=audio,
-                annotations=annotations,
-                segments_subdir=segments_subdir,
-                audio_name=audio_name,
-                romaji_mapping=romaji_mapping,
-                phoneme_mapping=phoneme_mapping
-            )
-            
-            # combine the data
-            test_dataset_dict["audio"].extend(data["audio"])
-            test_dataset_dict["transcription"].extend(data["transcription"])
-            test_dataset_dict["romaji"].extend(data["romaji"])
-            test_dataset_dict["phoneme"].extend(data["phoneme"])
-            test_dataset_dict["start"].extend(data["start"])
-            test_dataset_dict["end"].extend(data["end"])
-            test_dataset_dict["title"].extend(data["title"])
-            print(f"Processed {audio_name} with {len(data['audio'])} segments.")
-            
-        else:
-            # Get the transcription
-            transcription_tier = "default"
-            annotations = get_transcription(eaf_file,
-                                            transcription_tier=transcription_tier)
-            if not annotations:
-                print(f"No annotations found in {eaf_file}. Skipping.")
-                continue
-            
-            if args.augment_combine:
-                # Combine adjacent segments
-                data = make_audio_data_from_splits_combining(
-                    audio=audio,
-                    annotations=annotations,
-                    segments_subdir=segments_subdir,
-                    audio_name=audio_name,
-                    romaji_mapping=romaji_mapping,
-                    phoneme_mapping=phoneme_mapping,
-                    max_duration=15000  # 15 seconds
-                )
-            else:
-                # Process segments separately
-                data = make_audio_data_from_splits(
-                    audio=audio,
-                    annotations=annotations,
-                    segments_subdir=segments_subdir,
-                    audio_name=audio_name,
-                    romaji_mapping=romaji_mapping,
-                    phoneme_mapping=phoneme_mapping
-                )
-
-            # Tests
-            assert len(data["audio"]) == len(data["transcription"]), \
-                f"Audio and transcription lengths do not match for {audio_name}."
-            assert len(data["audio"]) == len(data["start"]), \
-                f"Audio and start times lengths do not match for {audio_name}."
-            assert len(data["audio"]) == len(data["end"]), \
-                f"Audio and end times lengths do not match for {audio_name}."
-            assert len(data["audio"]) == len(data["title"]), \
-                f"Audio and titles lengths do not match for {audio_name}."
-                
-            # Combine the data
-            dataset_dict["audio"].extend(data["audio"])
-            dataset_dict["transcription"].extend(data["transcription"])
-            dataset_dict["romaji"].extend(data["romaji"])
-            dataset_dict["phoneme"].extend(data["phoneme"])
-            dataset_dict["start"].extend(data["start"])
-            dataset_dict["end"].extend(data["end"])
-            dataset_dict["title"].extend(data["title"])
-            
-            print(f"Processed {audio_name} with {len(data['audio'])} segments.")
-            
-    # Create the test data
-    test_dataset = Dataset.from_dict(test_dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
-    
-    if args.save_testdata_only:
-        # Save the test dataset only
-        test_dataset.save_to_disk(args.test_repo_name)
-        print(f"Test dataset saved locally at: {args.test_repo_name}")
-        if args.push_to_hub:
-            test_dataset.push_to_hub(args.test_repo_name)
-            print(f"Test dataset uploaded to Hugging Face Hub at: {args.test_repo_name}")
-        exit(0)
-        
-    # Create an audio dataset
-    audio_dataset = Dataset.from_dict(dataset_dict).cast_column("audio", Audio(sampling_rate=16000))
-    
-    
-    
-    if args.push_to_hub:
-        # Upload the dataset to Hugging Face Hub
-        audio_dataset.push_to_hub(args.repo_name)
-        print(f"Training dataset uploaded to Hugging Face Hub at: {args.repo_name}")
-        
-        audio_dataset.push_to_hub(args.test_repo_name)
-        print(f"Test dataset uploaded to Hugging Face Hub at: {args.test_repo_name}")
-        
-    else:
-        # Save locally
-        audio_dataset.save_to_disk(args.repo_name)
-        print(f"Training dataset saved locally at: {args.repo_name}")
-        
-        test_dataset.save_to_disk(args.test_repo_name)
-        print(f"Test dataset saved locally at: {args.test_repo_name}")
