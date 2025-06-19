@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ANNOTATION_DOCUMENT AUTHOR="" DATE="2025-05-08T17:00:05-05:00"
+    FORMAT="3.0" VERSION="3.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.mpi.nl/tools/elan/EAFv3.0.xsd">
+    <HEADER MEDIA_FILE="" TIME_UNITS="milliseconds">
+        <MEDIA_DESCRIPTOR
+            MEDIA_URL="file:///Users/chihirot/ikema_asr/data/youtube/nazuke/nazuke.wav"
+            MIME_TYPE="audio/x-wav" RELATIVE_MEDIA_URL="./nazuke.wav"/>
+        <PROPERTY NAME="URN">urn:nl-mpi-tools-elan-eaf:88cfa07d-7cd2-41f6-806a-5c03b2f54dc7</PROPERTY>
+        <PROPERTY NAME="lastUsedAnnotationId">40</PROPERTY>
+    </HEADER>
+    <TIME_ORDER>
+        <TIME_SLOT TIME_SLOT_ID="ts1" TIME_VALUE="1660"/>
+        <TIME_SLOT TIME_SLOT_ID="ts2" TIME_VALUE="3010"/>
+        <TIME_SLOT TIME_SLOT_ID="ts3" TIME_VALUE="5840"/>
+        <TIME_SLOT TIME_SLOT_ID="ts4" TIME_VALUE="6700"/>
+        <TIME_SLOT TIME_SLOT_ID="ts5" TIME_VALUE="6860"/>
+        <TIME_SLOT TIME_SLOT_ID="ts6" TIME_VALUE="8110"/>
+        <TIME_SLOT TIME_SLOT_ID="ts7" TIME_VALUE="10230"/>
+        <TIME_SLOT TIME_SLOT_ID="ts8" TIME_VALUE="11380"/>
+        <TIME_SLOT TIME_SLOT_ID="ts9" TIME_VALUE="11410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts10" TIME_VALUE="12100"/>
+        <TIME_SLOT TIME_SLOT_ID="ts11" TIME_VALUE="13370"/>
+        <TIME_SLOT TIME_SLOT_ID="ts12" TIME_VALUE="14060"/>
+        <TIME_SLOT TIME_SLOT_ID="ts13" TIME_VALUE="14500"/>
+        <TIME_SLOT TIME_SLOT_ID="ts14" TIME_VALUE="15230"/>
+        <TIME_SLOT TIME_SLOT_ID="ts15" TIME_VALUE="16030"/>
+        <TIME_SLOT TIME_SLOT_ID="ts16" TIME_VALUE="16880"/>
+        <TIME_SLOT TIME_SLOT_ID="ts17" TIME_VALUE="17550"/>
+        <TIME_SLOT TIME_SLOT_ID="ts18" TIME_VALUE="18140"/>
+        <TIME_SLOT TIME_SLOT_ID="ts19" TIME_VALUE="19290"/>
+        <TIME_SLOT TIME_SLOT_ID="ts20" TIME_VALUE="19960"/>
+        <TIME_SLOT TIME_SLOT_ID="ts21" TIME_VALUE="20190"/>
+        <TIME_SLOT TIME_SLOT_ID="ts22" TIME_VALUE="21160"/>
+        <TIME_SLOT TIME_SLOT_ID="ts23" TIME_VALUE="21210"/>
+        <TIME_SLOT TIME_SLOT_ID="ts24" TIME_VALUE="21670"/>
+        <TIME_SLOT TIME_SLOT_ID="ts25" TIME_VALUE="21750"/>
+        <TIME_SLOT TIME_SLOT_ID="ts26" TIME_VALUE="22360"/>
+        <TIME_SLOT TIME_SLOT_ID="ts27" TIME_VALUE="22770"/>
+        <TIME_SLOT TIME_SLOT_ID="ts28" TIME_VALUE="24240"/>
+        <TIME_SLOT TIME_SLOT_ID="ts29" TIME_VALUE="24310"/>
+        <TIME_SLOT TIME_SLOT_ID="ts30" TIME_VALUE="25010"/>
+        <TIME_SLOT TIME_SLOT_ID="ts31" TIME_VALUE="25080"/>
+        <TIME_SLOT TIME_SLOT_ID="ts32" TIME_VALUE="25940"/>
+        <TIME_SLOT TIME_SLOT_ID="ts33" TIME_VALUE="25950"/>
+        <TIME_SLOT TIME_SLOT_ID="ts34" TIME_VALUE="26780"/>
+        <TIME_SLOT TIME_SLOT_ID="ts35" TIME_VALUE="26800"/>
+        <TIME_SLOT TIME_SLOT_ID="ts36" TIME_VALUE="27460"/>
+        <TIME_SLOT TIME_SLOT_ID="ts37" TIME_VALUE="28610"/>
+        <TIME_SLOT TIME_SLOT_ID="ts38" TIME_VALUE="30080"/>
+        <TIME_SLOT TIME_SLOT_ID="ts39" TIME_VALUE="30180"/>
+        <TIME_SLOT TIME_SLOT_ID="ts40" TIME_VALUE="30710"/>
+        <TIME_SLOT TIME_SLOT_ID="ts41" TIME_VALUE="30820"/>
+        <TIME_SLOT TIME_SLOT_ID="ts42" TIME_VALUE="31810"/>
+        <TIME_SLOT TIME_SLOT_ID="ts43" TIME_VALUE="31910"/>
+        <TIME_SLOT TIME_SLOT_ID="ts44" TIME_VALUE="32610"/>
+        <TIME_SLOT TIME_SLOT_ID="ts45" TIME_VALUE="33010"/>
+        <TIME_SLOT TIME_SLOT_ID="ts46" TIME_VALUE="34210"/>
+        <TIME_SLOT TIME_SLOT_ID="ts47" TIME_VALUE="34210"/>
+        <TIME_SLOT TIME_SLOT_ID="ts48" TIME_VALUE="35240"/>
+        <TIME_SLOT TIME_SLOT_ID="ts49" TIME_VALUE="35280"/>
+        <TIME_SLOT TIME_SLOT_ID="ts50" TIME_VALUE="36210"/>
+        <TIME_SLOT TIME_SLOT_ID="ts51" TIME_VALUE="38190"/>
+        <TIME_SLOT TIME_SLOT_ID="ts52" TIME_VALUE="39230"/>
+        <TIME_SLOT TIME_SLOT_ID="ts53" TIME_VALUE="39770"/>
+        <TIME_SLOT TIME_SLOT_ID="ts54" TIME_VALUE="40420"/>
+        <TIME_SLOT TIME_SLOT_ID="ts55" TIME_VALUE="40610"/>
+        <TIME_SLOT TIME_SLOT_ID="ts56" TIME_VALUE="42100"/>
+        <TIME_SLOT TIME_SLOT_ID="ts57" TIME_VALUE="42470"/>
+        <TIME_SLOT TIME_SLOT_ID="ts58" TIME_VALUE="43690"/>
+        <TIME_SLOT TIME_SLOT_ID="ts59" TIME_VALUE="44070"/>
+        <TIME_SLOT TIME_SLOT_ID="ts60" TIME_VALUE="45120"/>
+        <TIME_SLOT TIME_SLOT_ID="ts61" TIME_VALUE="46090"/>
+        <TIME_SLOT TIME_SLOT_ID="ts62" TIME_VALUE="46720"/>
+        <TIME_SLOT TIME_SLOT_ID="ts63" TIME_VALUE="46770"/>
+        <TIME_SLOT TIME_SLOT_ID="ts64" TIME_VALUE="47310"/>
+        <TIME_SLOT TIME_SLOT_ID="ts65" TIME_VALUE="47930"/>
+        <TIME_SLOT TIME_SLOT_ID="ts66" TIME_VALUE="49390"/>
+        <TIME_SLOT TIME_SLOT_ID="ts67" TIME_VALUE="50430"/>
+        <TIME_SLOT TIME_SLOT_ID="ts68" TIME_VALUE="52910"/>
+        <TIME_SLOT TIME_SLOT_ID="ts69" TIME_VALUE="52930"/>
+        <TIME_SLOT TIME_SLOT_ID="ts70" TIME_VALUE="54220"/>
+        <TIME_SLOT TIME_SLOT_ID="ts71" TIME_VALUE="54670"/>
+        <TIME_SLOT TIME_SLOT_ID="ts72" TIME_VALUE="56470"/>
+        <TIME_SLOT TIME_SLOT_ID="ts73" TIME_VALUE="56740"/>
+        <TIME_SLOT TIME_SLOT_ID="ts74" TIME_VALUE="58020"/>
+        <TIME_SLOT TIME_SLOT_ID="ts75" TIME_VALUE="58220"/>
+        <TIME_SLOT TIME_SLOT_ID="ts76" TIME_VALUE="58970"/>
+        <TIME_SLOT TIME_SLOT_ID="ts77" TIME_VALUE="59420"/>
+        <TIME_SLOT TIME_SLOT_ID="ts78" TIME_VALUE="60060"/>
+        <TIME_SLOT TIME_SLOT_ID="ts79" TIME_VALUE="60260"/>
+        <TIME_SLOT TIME_SLOT_ID="ts80" TIME_VALUE="60920"/>
+    </TIME_ORDER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="keichou">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a1"
+                TIME_SLOT_REF1="ts1" TIME_SLOT_REF2="ts2">
+                <ANNOTATION_VALUE>なーまい つきー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a2"
+                TIME_SLOT_REF1="ts3" TIME_SLOT_REF2="ts4">
+                <ANNOTATION_VALUE>がっこーぬ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a3"
+                TIME_SLOT_REF1="ts5" TIME_SLOT_REF2="ts6">
+                <ANNOTATION_VALUE>なーとぅ かんぬ なー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a4"
+                TIME_SLOT_REF1="ts9" TIME_SLOT_REF2="ts10">
+                <ANNOTATION_VALUE>ふたーつだら</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a6"
+                TIME_SLOT_REF1="ts11" TIME_SLOT_REF2="ts12">
+                <ANNOTATION_VALUE>どぅーぬ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a7"
+                TIME_SLOT_REF1="ts13" TIME_SLOT_REF2="ts14">
+                <ANNOTATION_VALUE>まず</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a8"
+                TIME_SLOT_REF1="ts15" TIME_SLOT_REF2="ts16">
+                <ANNOTATION_VALUE>かーばたぬ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a9"
+                TIME_SLOT_REF1="ts17" TIME_SLOT_REF2="ts18">
+                <ANNOTATION_VALUE>かまとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a10"
+                TIME_SLOT_REF1="ts19" TIME_SLOT_REF2="ts20">
+                <ANNOTATION_VALUE>じなんとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a11"
+                TIME_SLOT_REF1="ts21" TIME_SLOT_REF2="ts23">
+                <ANNOTATION_VALUE>くらー んめ やーぬ なー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a13"
+                TIME_SLOT_REF1="ts25" TIME_SLOT_REF2="ts26">
+                <ANNOTATION_VALUE>まさいとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a14"
+                TIME_SLOT_REF1="ts29" TIME_SLOT_REF2="ts30">
+                <ANNOTATION_VALUE>まさいとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a15"
+                TIME_SLOT_REF1="ts31" TIME_SLOT_REF2="ts33">
+                <ANNOTATION_VALUE>かに かにとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a16"
+                TIME_SLOT_REF1="ts35" TIME_SLOT_REF2="ts36">
+                <ANNOTATION_VALUE>かまとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a19"
+                TIME_SLOT_REF1="ts37" TIME_SLOT_REF2="ts39">
+                <ANNOTATION_VALUE>あい うらー んめ やーぬ なー さーいー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a20"
+                TIME_SLOT_REF1="ts41" TIME_SLOT_REF2="ts42">
+                <ANNOTATION_VALUE>ったー っゔぁー また</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a21"
+                TIME_SLOT_REF1="ts43" TIME_SLOT_REF2="ts44">
+                <ANNOTATION_VALUE>ひろゆき</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a22"
+                TIME_SLOT_REF1="ts47" TIME_SLOT_REF2="ts48">
+                <ANNOTATION_VALUE>つきゃーば うらー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a23"
+                TIME_SLOT_REF1="ts49" TIME_SLOT_REF2="ts50">
+                <ANNOTATION_VALUE>&lt;ja&gt;がっこー&lt;/ja&gt;ぬ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a24"
+                TIME_SLOT_REF1="ts51" TIME_SLOT_REF2="ts52">
+                <ANNOTATION_VALUE>かいぬ なー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a25"
+                TIME_SLOT_REF1="ts53" TIME_SLOT_REF2="ts54">
+                <ANNOTATION_VALUE>&lt;ja&gt;そーゆー&lt;/ja&gt;</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a28"
+                TIME_SLOT_REF1="ts55" TIME_SLOT_REF2="ts56">
+                <ANNOTATION_VALUE>なーんどぅ ふたーつ あいだらい</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a29"
+                TIME_SLOT_REF1="ts57" TIME_SLOT_REF2="ts58">
+                <ANNOTATION_VALUE>&lt;ja&gt;で ほとんど&lt;/ja&gt; んめ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a30"
+                TIME_SLOT_REF1="ts59" TIME_SLOT_REF2="ts60">
+                <ANNOTATION_VALUE>どぅーぬ すまー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a31"
+                TIME_SLOT_REF1="ts61" TIME_SLOT_REF2="ts62">
+                <ANNOTATION_VALUE>ういびとぅー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a32"
+                TIME_SLOT_REF1="ts63" TIME_SLOT_REF2="ts64">
+                <ANNOTATION_VALUE>んみゃ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a33"
+                TIME_SLOT_REF1="ts65" TIME_SLOT_REF2="ts66">
+                <ANNOTATION_VALUE>やーぬ なーしか あっざんだら</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a34"
+                TIME_SLOT_REF1="ts67" TIME_SLOT_REF2="ts68">
+                <ANNOTATION_VALUE>かにーてぃ あがいにゃーぬ かにーとぅか いーにゃーぬ かまーとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a36"
+                TIME_SLOT_REF1="ts71" TIME_SLOT_REF2="ts72">
+                <ANNOTATION_VALUE>あいしか あっざんだらい &lt;ja&gt;ほんとー&lt;/ja&gt;ぬ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a37"
+                TIME_SLOT_REF1="ts73" TIME_SLOT_REF2="ts74">
+                <ANNOTATION_VALUE>&lt;ja&gt;がっこー&lt;/ja&gt;ぬ なーゆば</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a38"
+                TIME_SLOT_REF1="ts75" TIME_SLOT_REF2="ts76">
+                <ANNOTATION_VALUE>あっざんだら</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a39"
+                TIME_SLOT_REF1="ts78" TIME_SLOT_REF2="ts80">
+                <ANNOTATION_VALUE>まなー あっざん</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="hiroyuki">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a5"
+                TIME_SLOT_REF1="ts7" TIME_SLOT_REF2="ts8">
+                <ANNOTATION_VALUE>なーゆぎゃー ふたーつ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a12"
+                TIME_SLOT_REF1="ts22" TIME_SLOT_REF2="ts24">
+                <ANNOTATION_VALUE>まさいとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a17"
+                TIME_SLOT_REF1="ts27" TIME_SLOT_REF2="ts28">
+                <ANNOTATION_VALUE>じなんてぃ あらん いー まさいとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a18"
+                TIME_SLOT_REF1="ts32" TIME_SLOT_REF2="ts34">
+                <ANNOTATION_VALUE>かにとぅか</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a26"
+                TIME_SLOT_REF1="ts38" TIME_SLOT_REF2="ts40">
+                <ANNOTATION_VALUE>やーぬ なー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a27"
+                TIME_SLOT_REF1="ts45" TIME_SLOT_REF2="ts46">
+                <ANNOTATION_VALUE>あー ひろゆきてぃ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a35"
+                TIME_SLOT_REF1="ts69" TIME_SLOT_REF2="ts70">
+                <ANNOTATION_VALUE>ばぬーぎゃー ほぅじなんてぃどぅ あいよ</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a40"
+                TIME_SLOT_REF1="ts77" TIME_SLOT_REF2="ts79">
+                <ANNOTATION_VALUE>まなー あっじゃん いー</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <LINGUISTIC_TYPE GRAPHIC_REFERENCES="false"
+        LINGUISTIC_TYPE_ID="default-lt" TIME_ALIGNABLE="true"/>
+    <CONSTRAINT
+        DESCRIPTION="Time subdivision of parent annotation's time interval, no time gaps allowed within this interval" STEREOTYPE="Time_Subdivision"/>
+    <CONSTRAINT
+        DESCRIPTION="Symbolic subdivision of a parent annotation. Annotations refering to the same parent are ordered" STEREOTYPE="Symbolic_Subdivision"/>
+    <CONSTRAINT DESCRIPTION="1-1 association with a parent annotation" STEREOTYPE="Symbolic_Association"/>
+    <CONSTRAINT
+        DESCRIPTION="Time alignable annotations within the parent annotation's time interval, gaps are allowed" STEREOTYPE="Included_In"/>
+</ANNOTATION_DOCUMENT>
