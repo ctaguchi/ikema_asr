@@ -17,6 +17,9 @@ import jiwer
 import re
 import os
 
+# local imports
+import prepare_youtube_dataset
+
 dotenv.load_dotenv()
 
 
@@ -291,8 +294,11 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
 
-    dataset = load_data_from_hf(args.dataset)
-    print("Loaded dataset:", args.dataset)
+    if args.generate_dataset:
+        raise NotImplementedError
+    else:
+        dataset = load_data_from_hf(args.dataset)
+        print("Loaded dataset:", args.dataset)
     print("Dataset size:", len(dataset))
 
     eval_dataset = load_data_from_hf(args.eval_dataset)
