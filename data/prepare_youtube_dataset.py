@@ -437,6 +437,14 @@ def generate_dataset(audio_dir: str,
         elif audio_name == "sinatui":
             # TODO
             continue
+            
+        elif audio_name == "utakinohanashi":
+            # TODO
+            continue
+        
+        elif audio_name == "nazuke":
+            # TODO
+            continue
         
         elif audio_name == validation_set:
             valid_dataset_dict = prepare_format(
@@ -625,4 +633,15 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
+    generate_dataset(audio_dir=args.audio_dir,
+                     romaji_map_file=args.romaji_map_file,
+                     phoneme_map_file=args.phoneme_map_file,
+                     repo_name=args.repo_name,
+                     test_repo_name=args.test_repo_name,
+                     save_testdata_only=args.save_testdata_only,
+                     push_to_hub=args.push_to_hub,
+                     validation_set="jugon",
+                     test_set="mimamuibusu",
+                     return_datasetdict=False,
+                     )
     
