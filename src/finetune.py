@@ -350,6 +350,11 @@ if __name__ == "__main__":
         dataset = concatenate_datasets([dataset, additional_data])
         if args.use_dict_dataset:
             dict_dataset = load_data_from_hf(args.dict_dataset_path)
+            # Rename the dictionary column names
+            # originally, it has: "word_id", "word", "audio", "part_of_speech", "description", "example_sentence".
+            # we only need "word" and "audio"
+            dict_dataset = dict_dataset.rename_column("word", "transcription")
+            dict_dataset = dict_dataset.remove_columns(["word_id", "part_of_speech", "description", "example_sentence"])
             dataset = concatenate_datasets([dataset, dict_dataset])
             print("Using dictionary dataset:", args.dict_dataset_path)
             
