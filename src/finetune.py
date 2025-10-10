@@ -1,6 +1,6 @@
 import argparse
 import dotenv
-from datasets import Dataset, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
 import json
 from transformers import (Wav2Vec2CTCTokenizer,
                           Wav2Vec2FeatureExtractor,
@@ -16,9 +16,10 @@ import numpy as np
 import jiwer
 import re
 import os
+import wandb
 
 # local imports
-import prepare_youtube_dataset
+# import prepare_youtube_dataset
 
 dotenv.load_dotenv()
 
@@ -27,6 +28,12 @@ def load_data_from_hf(dataset_name: str) -> Dataset:
     """Load the dataset from huggingface"""
     username = "ctaguchi"
     dataset = load_dataset(f"{username}/{dataset_name}")
+    return dataset["train"]
+
+
+def load_data_locally(dataset_path: str) -> Dataset:
+    """Load the dataset locally."""
+    dataset = load_from_disk(dataset_path)
     return dataset["train"]
 
 
@@ -73,7 +80,7 @@ def prepare_vocab(dataset: Dataset) -> str:
 
 
 def prepare_dataset(batch: dict,
-                    augmentor) -> dict:
+                    augmentor=None) -> dict:
     """Prepare the dataset for the training.
     Add `input_values` and `labels` to the dataset.
     """
@@ -192,13 +199,18 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--eval_dataset",
         type=str,
-        default="ikema_youtube_asr_test",
+        default=None,
         help="The evaluation (validation) dataset."
     )
     parser.add_argument(
         "--generate_dataset",
         action="store_true",
         help="Generate a dataset upon training instead of loading from HF"
+    )
+    parser.add_argument(
+        "--load_from_disk",
+        action="store_true",
+        help="Load a dataset locally."
     )
     
     # Data augmentation group
@@ -287,6 +299,11 @@ def get_args() -> argparse.Namespace:
         default="ikema-asr",
         help="WandB run name."
     )
+    parser.add_argument(
+        "--push_to_hub",
+        action="store_true",
+        help="If set, the fine-tuned model will be pushed to Hugging Face Hub."
+    )
 
     return parser.parse_args()
 
@@ -296,14 +313,31 @@ if __name__ == "__main__":
 
     if args.generate_dataset:
         raise NotImplementedError
+
+    if args.load_from_disk:
+        dataset = load_data_locally(args.dataset)
     else:
         dataset = load_data_from_hf(args.dataset)
-        print("Loaded dataset:", args.dataset)
+    print("Loaded dataset:", args.dataset)
     print("Dataset size:", len(dataset))
 
-    eval_dataset = load_data_from_hf(args.eval_dataset)
-    print("Loaded eval dataset:", args.dataset)
-    print("Eval dataset size:", len(eval_dataset))
+    if args.eval_dataset:
+        eval_dataset = load_data_from_hf(args.eval_dataset)
+        print("Loaded eval dataset:", args.dataset)
+    else:
+        train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
+        test_valid = train_devtest["test"].train_test_split(test_size=0.5, seed=42)
+        dataset_dict = DatasetDict({
+            "train": train_devtest["train"],
+            "dev": test_valid["train"],
+            "test": test_valid["test"]
+            })
+        # match the variables
+        dataset = dataset_dict["train"]
+        eval_dataset = dataset_dict["dev"]
+
+    print("Training data size:", len(dataset))
+    print("Dev data size:", len(eval_dataset))
     
     if args.script == "kana":
         dataset = dataset.rename_column("transcription", "text")
@@ -314,6 +348,15 @@ if __name__ == "__main__":
     elif args.script == "phoneme":
         dataset = dataset.rename_column("phoneme", "text")
         eval_dataset = eval_dataset.rename_column("phoneme", "text")
+
+    # wandb login
+    try:
+        wandb_api_key = os.environ["WANDB_API_KEY"]
+    except KeyError as e:
+        print("WandB API key not found in the environment.")
+        print(e)
+    
+    wandb.login(key=wandb_api_key)
 
     dataset = dataset.map(remove_tags,
                           num_proc=args.num_proc)
@@ -341,18 +384,21 @@ if __name__ == "__main__":
         feature_extractor=feature_extractor,
         tokenizer=tokenizer
     )
-    
-    augment_methods = [
-        AddBackgroundNoise(sounds_path="../data/background_noise") if args.add_background_noise else None,
-        PitchShift(min_semitones=args.min_semitones,
-                    max_semitones=args.max_semitones,
-                    p=args.pitch_shift) if args.pitch_shift else None,
-        TimeStretch(min_rate=args.min_rate,
-                    max_rate=args.max_rate,
-                    p=args.time_stretch) if args.time_stretch else None
-    ]
-    augmentor = Compose([method for method in augment_methods if method is not None])
-    
+
+    if (args.pitch_shift or args.add_background_noise or args.time_stretch):
+        augment_methods = [
+            AddBackgroundNoise(sounds_path="../data/background_noise") if args.add_background_noise else None,
+            PitchShift(min_semitones=args.min_semitones,
+                       max_semitones=args.max_semitones,
+                       p=args.pitch_shift) if args.pitch_shift else None,
+            TimeStretch(min_rate=args.min_rate,
+                        max_rate=args.max_rate,
+                        p=args.time_stretch) if args.time_stretch else None
+        ]
+        augmentor = Compose([method for method in augment_methods if method is not None])
+
+    else:
+        augmentor = None
     dataset = dataset.map(prepare_dataset,
                           fn_kwargs={"augmentor": augmentor},
                           remove_columns=dataset.column_names)
@@ -419,7 +465,8 @@ if __name__ == "__main__":
     trainer.save_state()
     trainer.save_model()
 
-    model.push_to_hub(args.repo_name,
-                      use_auth_token=os.environ["HF_TOKEN"])
-    tokenizer.push_to_hub(args.repo_name,
+    if args.push_to_hub:
+        model.push_to_hub(args.repo_name,
                           use_auth_token=os.environ["HF_TOKEN"])
+        tokenizer.push_to_hub(args.repo_name,
+                              use_auth_token=os.environ["HF_TOKEN"])

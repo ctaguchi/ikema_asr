@@ -5,6 +5,7 @@ description = "ASR for Ikema."
 authors = ["Chihiro Taguchi"]
 license = "Private"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.13"
