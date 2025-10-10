@@ -1,6 +1,6 @@
 import argparse
 import dotenv
-from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
+from datasets import Dataset, DatasetDict, load_dataset, load_from_disk, concatenate_datasets
 import json
 from transformers import (Wav2Vec2CTCTokenizer,
                           Wav2Vec2FeatureExtractor,
@@ -347,10 +347,10 @@ if __name__ == "__main__":
         print("Loaded eval dataset:", args.dataset)
     else:
         additional_data = load_data_from_hf("ikema_youtube_asr_test") # add the youtube test set for more data
-        dataset = dataset.concatenate(additional_data)
+        dataset = concatenate_datasets([dataset, additional_data])
         if args.use_dict_dataset:
             dict_dataset = load_data_from_hf(args.dict_dataset_path)
-            dataset = dataset.concatenate(dict_dataset)
+            dataset = concatenate_datasets([dataset, dict_dataset])
             print("Using dictionary dataset:", args.dict_dataset_path)
             
         train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
