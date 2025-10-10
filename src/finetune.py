@@ -272,6 +272,12 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Whether to freeze the feature encoder.",
     )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=3e-4,
+        help="Learning rate.",
+    )
     
     # Misc group
     parser.add_argument(
@@ -437,7 +443,7 @@ if __name__ == "__main__":
         save_steps=100,
         eval_steps=100,
         logging_steps=100,
-        learning_rate=3e-4,
+        learning_rate=args.learning_rate,
         warmup_steps=100,
         save_total_limit=2,
         push_to_hub=True,
