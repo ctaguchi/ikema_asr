@@ -45,7 +45,7 @@ def remove_tags(batch: Dict[str, str | dict]) -> dict:
     """Count the total number of characters in an eaf annotation.
     Ignore whitespaces.
     """
-    batch["text"] = re.sub(r"</?(ja|dis|unsure|song)>", "", batch["text"])
+    batch["text"] = re.sub(r"</?(ja|dis|unsure|song|name)>", "", batch["text"])
     return batch
 
 
@@ -220,7 +220,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--dict_dataset_path",
         type=str,
-        default="ctaguchi/ikema_dict_asr",
+        default="ikema_dict_asr",
         help="Path to the local dictionary dataset."
     )
 
