@@ -1,4 +1,4 @@
-Aimport argparse
+import argparse
 import dotenv
 from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
 import json
@@ -45,7 +45,7 @@ def remove_tags(batch: Dict[str, str | dict]) -> dict:
     """Count the total number of characters in an eaf annotation.
     Ignore whitespaces.
     """
-    batch["text"] = re.sub(r"</?(ja|dis|unsure)>", "", batch["text"])
+    batch["text"] = re.sub(r"</?(ja|dis|unsure|song)>", "", batch["text"])
     return batch
 
 
@@ -212,7 +212,18 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Load a dataset locally."
     )
-    
+    parser.add_argument(
+        "--use_dict_dataset",
+        action="store_true",
+        help="Whether to use a dictionary dataset."
+    )
+    parser.add_argument(
+        "--dict_dataset_path",
+        type=str,
+        default="ctaguchi/ikema_dict_asr",
+        help="Path to the local dictionary dataset."
+    )
+
     # Data augmentation group
     parser.add_argument(
         "--pitch_shift",
@@ -278,6 +289,12 @@ def get_args() -> argparse.Namespace:
         default=3e-4,
         help="Learning rate.",
     )
+    parser.add_argument(
+        "--warmup_steps",
+        type=int,
+        default=500,
+        help="Number of warmup steps.",
+    )
     
     # Misc group
     parser.add_argument(
@@ -324,24 +341,33 @@ if __name__ == "__main__":
         dataset = load_data_locally(args.dataset)
     else:
         dataset = load_data_from_hf(args.dataset)
-    print("Loaded dataset:", args.dataset)
-    print("Dataset size:", len(dataset))
 
     if args.eval_dataset:
         eval_dataset = load_data_from_hf(args.eval_dataset)
         print("Loaded eval dataset:", args.dataset)
     else:
+        additional_data = load_data_from_hf("ikema_youtube_asr_test") # add the youtube test set for more data
+        dataset = dataset.concatenate(additional_data)
+        if args.use_dict_dataset:
+            dict_dataset = load_data_from_hf(args.dict_dataset_path)
+            dataset = dataset.concatenate(dict_dataset)
+            print("Using dictionary dataset:", args.dict_dataset_path)
+            
         train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
         test_valid = train_devtest["test"].train_test_split(test_size=0.5, seed=42)
+        
         dataset_dict = DatasetDict({
             "train": train_devtest["train"],
             "dev": test_valid["train"],
             "test": test_valid["test"]
             })
+        
         # match the variables
         dataset = dataset_dict["train"]
         eval_dataset = dataset_dict["dev"]
 
+    print("Loaded dataset:", args.dataset)
+    print("Dataset size:", len(dataset))
     print("Training data size:", len(dataset))
     print("Dev data size:", len(eval_dataset))
     
@@ -354,6 +380,8 @@ if __name__ == "__main__":
     elif args.script == "phoneme":
         dataset = dataset.rename_column("phoneme", "text")
         eval_dataset = eval_dataset.rename_column("phoneme", "text")
+    else:
+        raise ValueError("Invalid script. Choose from 'kana', 'romaji', or 'phoneme'.")
 
     # wandb login
     try:
@@ -444,9 +472,9 @@ if __name__ == "__main__":
         eval_steps=100,
         logging_steps=100,
         learning_rate=args.learning_rate,
-        warmup_steps=100,
+        warmup_steps=args.warmup_steps,
         save_total_limit=2,
-        push_to_hub=True,
+        push_to_hub=args.push_to_hub,
         hub_token=os.environ["HF_TOKEN"],
         report_to="wandb",
         run_name=args.wandb_run_name,
