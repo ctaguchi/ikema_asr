@@ -116,7 +116,18 @@ def compute_metrics(pred) -> Dict[str, float]:
             reference=label_str,
             hypothesis=pred_str
         )
-        return {"cer": cer}
+        wer = jiwer.wer(
+            reference=label_str,
+            hypothesis=pred_str
+        )
+        
+        # log full results
+        table = wandb.Table(columns=["prediction", "reference"])
+        for p, r in list(zip(pred_str, label_str)):
+            table.add_data(p, r)
+        wandb.log({"val/examples": table})
+
+        return {"cer": cer, "wer": wer}
 
 
 Feature = Dict[str, Union[List[int], torch.Tensor]]
@@ -372,7 +383,7 @@ if __name__ == "__main__":
         eval_dataset = dataset_dict["dev"]
 
     print("Loaded dataset:", args.dataset)
-    print("Dataset size:", len(dataset))
+    print("Dataset size:", sum([len(split) for split in dataset_dict.values()]))
     print("Training data size:", len(dataset))
     print("Dev data size:", len(eval_dataset))
     
