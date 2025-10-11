@@ -358,7 +358,8 @@ if __name__ == "__main__":
         print("Loaded eval dataset:", args.dataset)
     else:
         additional_data = load_data_from_hf("ikema_youtube_asr_test") # add the youtube test set for more data
-        dataset = concatenate_datasets([dataset, additional_data])
+        lecture_data = load_data_from_hf("ikema_youtube_asr_hougenkougi")
+        dataset = concatenate_datasets([dataset, additional_data, lecture_data])
         if args.use_dict_dataset:
             dict_dataset = load_data_from_hf(args.dict_dataset_path)
             # Rename the dictionary column names
