@@ -37,6 +37,55 @@ def load_data_locally(dataset_path: str) -> Dataset:
     return dataset["train"]
 
 
+def load_data(main_dataset: str,
+              eval_data: bool = False,
+              load_from_disk: bool = False,
+              use_dict_dataset: bool = False,
+              story_dataset: Optional[str] = "ikema_youtube_asr_test",
+              lecture_dataset: Optional[str] = "ikema_youtube_asr_hougenkougi",
+              dict_dataset: Optional[str] = "ikema_youtube_asr_dict") -> DatasetDict:
+    """Load the dataset."""
+    if load_from_disk:
+        dataset = load_data_locally(main_dataset)
+    else:
+        dataset = load_data_from_hf(main_dataset)
+
+    if eval_data: # This is not recommended
+        story_data = load_data_from_hf(story_dataset)
+        print("Loaded story dataset:", story_dataset)
+        
+        dataset_dict = DatasetDict({
+            "train": dataset,
+            "dev": story_data,
+            "test": None
+        })
+    else:
+        additional_data = load_data_from_hf(story_dataset) # add the youtube test set for more data
+        lecture_data = load_data_from_hf(lecture_dataset)
+        dataset = concatenate_datasets([dataset, additional_data, lecture_data])
+        
+        if use_dict_dataset:
+            dict_data = load_data_from_hf(dict_dataset)
+            # Rename the dictionary column names
+            # originally, it has: "word_id", "word", "audio", "part_of_speech", "description", "example_sentence".
+            # we only need "word" and "audio"
+            dict_data = dict_data.rename_column("word", "transcription")
+            dict_data = dict_data.remove_columns(["word_id", "part_of_speech", "description", "example_sentence"])
+            dataset = concatenate_datasets([dataset, dict_data])
+            print("Using dictionary dataset:", dict_data)
+
+        train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
+        test_valid = train_devtest["test"].train_test_split(test_size=0.5, seed=42)
+        
+        dataset_dict = DatasetDict({
+            "train": train_devtest["train"],
+            "dev": test_valid["train"],
+            "test": test_valid["test"]
+            })
+        
+    return dataset_dict
+
+
 def generate_data() -> Dataset:
     ...
 
@@ -241,6 +290,12 @@ def get_args() -> argparse.Namespace:
         default="ikema_dict_asr",
         help="Path to the local dictionary dataset."
     )
+    parser.add_argument(
+        "--lecture_dataset",
+        type=str,
+        default="ikema_youtube_asr_hougenkougi",
+        help="The lecture dataset to use."
+    )
 
     # Data augmentation group
     parser.add_argument(
@@ -359,56 +414,35 @@ if __name__ == "__main__":
 
     if args.generate_dataset:
         raise NotImplementedError
-
-    if args.load_from_disk:
-        dataset = load_data_locally(args.dataset)
-    else:
-        dataset = load_data_from_hf(args.dataset)
-
-    if args.eval_dataset:
-        eval_dataset = load_data_from_hf(args.eval_dataset)
-        print("Loaded eval dataset:", args.dataset)
-    else:
-        additional_data = load_data_from_hf("ikema_youtube_asr_test") # add the youtube test set for more data
-        lecture_data = load_data_from_hf("ikema_youtube_asr_hougenkougi")
-        dataset = concatenate_datasets([dataset, additional_data, lecture_data])
-        if args.use_dict_dataset:
-            dict_dataset = load_data_from_hf(args.dict_dataset_path)
-            # Rename the dictionary column names
-            # originally, it has: "word_id", "word", "audio", "part_of_speech", "description", "example_sentence".
-            # we only need "word" and "audio"
-            dict_dataset = dict_dataset.rename_column("word", "transcription")
-            dict_dataset = dict_dataset.remove_columns(["word_id", "part_of_speech", "description", "example_sentence"])
-            dataset = concatenate_datasets([dataset, dict_dataset])
-            print("Using dictionary dataset:", args.dict_dataset_path)
-            
-        train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
-        test_valid = train_devtest["test"].train_test_split(test_size=0.5, seed=42)
-        
-        dataset_dict = DatasetDict({
-            "train": train_devtest["train"],
-            "dev": test_valid["train"],
-            "test": test_valid["test"]
-            })
-        
-        # match the variables
-        dataset = dataset_dict["train"]
-        eval_dataset = dataset_dict["dev"]
+    
+    dataset_dict = load_data(
+        main_dataset=args.dataset,
+        eval_data=bool(args.eval_dataset),
+        load_from_disk=args.load_from_disk,
+        use_dict_dataset=args.use_dict_dataset,
+        story_dataset=args.story_dataset,
+        lecture_dataset=args.lecture_dataset,
+        dict_dataset=args.dict_dataset_path
+    )
+    
+    # match the variables
+    train = dataset_dict["train"]
+    dev = dataset_dict["dev"]
 
     print("Loaded dataset:", args.dataset)
     print("Dataset size:", sum([len(split) for split in dataset_dict.values()]))
-    print("Training data size:", len(dataset))
-    print("Dev data size:", len(eval_dataset))
-    
+    print("Training data size:", len(train))
+    print("Dev data size:", len(dev))
+
     if args.script == "kana":
-        dataset = dataset.rename_column("transcription", "text")
-        eval_dataset = eval_dataset.rename_column("transcription", "text")
+        train = train.rename_column("transcription", "text")
+        dev = dev.rename_column("transcription", "text")
     elif args.script == "romaji":
-        dataset = dataset.rename_column("romaji", "text")
-        eval_dataset = eval_dataset.rename_column("romaji", "text")
+        train = train.rename_column("romaji", "text")
+        dev = dev.rename_column("romaji", "text")
     elif args.script == "phoneme":
-        dataset = dataset.rename_column("phoneme", "text")
-        eval_dataset = eval_dataset.rename_column("phoneme", "text")
+        train = train.rename_column("phoneme", "text")
+        dev = dev.rename_column("phoneme", "text")
     else:
         raise ValueError("Invalid script. Choose from 'kana', 'romaji', or 'phoneme'.")
 
@@ -421,12 +455,12 @@ if __name__ == "__main__":
     
     wandb.login(key=wandb_api_key)
 
-    dataset = dataset.map(remove_tags,
-                          num_proc=args.num_proc)
-    eval_dataset = eval_dataset.map(remove_tags,
-                                    num_proc=args.num_proc)
+    train = train.map(remove_tags,
+                      num_proc=args.num_proc)
+    dev = dev.map(remove_tags,
+                  num_proc=args.num_proc)
 
-    vocab_file = prepare_vocab(dataset,
+    vocab_file = prepare_vocab(train,
                                phonemic_vocab=args.phonemic_vocab)
 
     tokenizer = Wav2Vec2CTCTokenizer(
