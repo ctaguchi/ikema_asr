@@ -49,7 +49,7 @@ def remove_tags(batch: Dict[str, str | dict]) -> dict:
     return batch
 
 
-def make_vocab(dataset: Dataset):
+def make_vocab(dataset: Dataset) -> set:
     """Get all the character types that appear in the dataset."""
     vocab = set()
     for transcription in dataset["text"]:
@@ -58,10 +58,17 @@ def make_vocab(dataset: Dataset):
     return vocab
 
 
-def prepare_vocab(dataset: Dataset) -> str:
+def prepare_vocab(dataset: Dataset,
+                  phonemic_vocab: bool) -> str:
     """Prepare vocab for training."""
     vocab_file = "vocab.json"
     vocab = make_vocab(dataset)
+    
+    if phonemic_vocab:
+        # use a predefined digraph kana set
+        with open("kana_vocab.txt", "r") as f:
+            phonemes = f.read().splitlines()
+        vocab.update(set(phonemes))
 
     vocab_dict = {v: k for k, v in enumerate(vocab)}
 
@@ -306,6 +313,11 @@ def get_args() -> argparse.Namespace:
         default=500,
         help="Number of warmup steps.",
     )
+    parser.add_argument(
+        "--phonemic_vocab",
+        action="store_true",
+        help="Whether to use a phonemic vocabulary.",
+    )
     
     # Misc group
     parser.add_argument(
@@ -414,7 +426,8 @@ if __name__ == "__main__":
     eval_dataset = eval_dataset.map(remove_tags,
                                     num_proc=args.num_proc)
 
-    vocab_file = prepare_vocab(dataset)
+    vocab_file = prepare_vocab(dataset,
+                               phonemic_vocab=args.phonemic_vocab)
 
     tokenizer = Wav2Vec2CTCTokenizer(
         "vocab.json",
