@@ -304,6 +304,12 @@ def get_args() -> argparse.Namespace:
         default="ikema_youtube_asr_hougenkougi",
         help="The lecture dataset to use."
     )
+    parser.add_argument(
+        "--story_dataset",
+        type=str,
+        default="ikema_youtube_asr_test",
+        help="The story dataset to use."
+    )
 
     # Data augmentation group
     parser.add_argument(
