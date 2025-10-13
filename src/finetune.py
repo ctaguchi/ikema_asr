@@ -108,9 +108,10 @@ def make_vocab(dataset: Dataset) -> set:
 
 
 def prepare_vocab(dataset: Dataset,
+                  repo_name: str,
                   phonemic_vocab: bool) -> str:
     """Prepare vocab for training."""
-    vocab_file = "vocab.json"
+    vocab_file = os.path.join(repo_name, "vocab.json")
     vocab = make_vocab(dataset)
     
     if phonemic_vocab:
@@ -461,10 +462,11 @@ if __name__ == "__main__":
                   num_proc=args.num_proc)
 
     vocab_file = prepare_vocab(train,
+                               repo_name=args.repo_name,
                                phonemic_vocab=args.phonemic_vocab)
 
     tokenizer = Wav2Vec2CTCTokenizer(
-        "vocab.json",
+        vocab_file=vocab_file,
         unk_token="[UNK]",
         pad_token="[PAD]",
         word_delimiter_token="|"
