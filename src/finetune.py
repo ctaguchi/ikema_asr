@@ -116,8 +116,15 @@ def prepare_vocab(dataset: Dataset,
     
     if phonemic_vocab:
         # use a predefined digraph kana set
-        with open("kana_vocab.txt", "r") as f:
-            phonemes = f.read().splitlines()
+        if args.script == "romaji":
+            with open("romaji_vocab.txt", "r") as f:
+                phonemes = f.read().splitlines()
+        elif args.script == "phoneme":
+            with open("phoneme_vocab.txt", "r") as f:
+                phonemes = f.read().splitlines()
+        else: # kana
+            with open("kana_vocab.txt", "r") as f:
+                phonemes = f.read().splitlines()
         vocab.update(set(phonemes))
 
     vocab_dict = {v: k for k, v in enumerate(vocab)}
