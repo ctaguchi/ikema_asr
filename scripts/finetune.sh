@@ -2,7 +2,7 @@
 #$ -M ctaguchi@nd.edu
 #$ -m abe
 #$ -pe smp 8
-#$ -N ikema-asr-romaji
+#$ -N ikema-asr
 #$ -l gpu_card=1
 #$ -q gpu@@nlp-a10
 
@@ -15,9 +15,9 @@ module load python
 poetry run python finetune.py \
        --dataset ikema_youtube_asr \
        --eval_dataset ikema_youtube_asr_test \
-       --epoch 150 \
-       --script romaji \
-       --wandb_run_name ikema-asr-youtube-romaji \
-       --repo_name ikema-asr-youtube-romaji
+       --epoch 50 \
+       --script kana \
+       --wandb_run_name ikema-asr \
+       --repo_name ikema-asr
     
 cd -
