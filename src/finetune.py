@@ -112,6 +112,7 @@ def prepare_vocab(dataset: Dataset,
                   phonemic_vocab: bool) -> str:
     """Prepare vocab for training."""
     vocab_file = os.path.join(repo_name, "vocab.json")
+    os.makedirs(repo_name, exist_ok=True)
     vocab = make_vocab(dataset)
     
     if phonemic_vocab:
