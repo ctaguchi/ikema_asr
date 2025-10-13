@@ -2,6 +2,16 @@ import re
 from typing import Dict
 
 
+def remove_tags(text: str) -> str:
+    """Remove XML tags from text."""
+    text = re.sub(r"</?(ja|dis|unsure|song|name)>", "", text)
+    
+    # Remove extra spaces
+    text = re.sub(r"\s+", " ", text)
+        
+    return text.strip()
+
+
 def hiragana_to_romaji(text: str,
                        romaji_mapping: Dict[str, str]) -> str:
     """Mapping from hiragana to romaji."""
@@ -95,6 +105,16 @@ def hiragana_to_phoneme(text: str,
                 # dental
                 elif re.match(r"[tdn]", word[j+2]):
                     result.append("n̥")
+                elif re.match(r"N", word[j+2]):
+                    if j < len(word) - 3:
+                        if re.match(r"[pbm]", word[j+3]):
+                            result.append("m̥")
+                        elif re.match(r"[kg]", word[j+3]):
+                            result.append("ŋ̥")
+                        elif re.match(r"[tdn]", word[j+3]):
+                            result.append("n̥")
+                    else:
+                        result.append("ɴ̥")
                 else:
                     # result[j] = "ɴ̥"  # Combining ring above (̥)
                     result.append("ɴ̥")
