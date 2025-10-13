@@ -374,6 +374,12 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Whether to use a phonemic vocabulary.",
     )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=16,
+        help="Batch size per GPU/TPU core/CPU for training.",
+    )
     
     # Misc group
     parser.add_argument(
@@ -499,11 +505,11 @@ if __name__ == "__main__":
 
     else:
         augmentor = None
-    dataset = dataset.map(prepare_dataset,
-                          fn_kwargs={"augmentor": augmentor},
-                          remove_columns=dataset.column_names)
-    eval_dataset = eval_dataset.map(prepare_dataset,
-                                    remove_columns=eval_dataset.column_names)
+    dataset = train.map(prepare_dataset,
+                        fn_kwargs={"augmentor": augmentor},
+                        remove_columns=train.column_names)
+    eval_dataset = dev.map(prepare_dataset,
+                           remove_columns=dev.column_names)
     
     data_collator = DataCollatorCTCWithPadding(
         processor=processor,
@@ -528,7 +534,7 @@ if __name__ == "__main__":
     training_args = TrainingArguments(
         output_dir=args.repo_name,
         group_by_length=True,
-        per_device_train_batch_size=16,
+        per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=2,
         eval_strategy="steps",
         num_train_epochs=args.epoch,
@@ -565,8 +571,8 @@ if __name__ == "__main__":
     trainer.save_state()
     trainer.save_model()
 
-    if args.push_to_hub:
-        model.push_to_hub(args.repo_name,
-                          use_auth_token=os.environ["HF_TOKEN"])
-        tokenizer.push_to_hub(args.repo_name,
-                              use_auth_token=os.environ["HF_TOKEN"])
+    # if args.push_to_hub:
+    #     model.push_to_hub(args.repo_name,
+    #                       use_auth_token=os.environ["HF_TOKEN"])
+    #     tokenizer.push_to_hub(args.repo_name,
+    #                           use_auth_token=os.environ["HF_TOKEN"])
