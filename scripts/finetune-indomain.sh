@@ -2,7 +2,7 @@
 #$ -M ctaguchi@nd.edu
 #$ -m abe
 #$ -pe smp 8
-#$ -N ikema-asr
+#$ -N ikema-asr-indomain
 #$ -l gpu_card=1
 #$ -q gpu@@nlp-a10
 
@@ -14,10 +14,13 @@ export WANDB_PROJECT="ikema_asr"
 module load python
 poetry run python finetune.py \
        --dataset ikema_youtube_asr_full \
-       --eval_dataset ikema_youtube_asr_test \
-       --epoch 50 \
+       --use_dict_dataset \
+       --dict_dataset_path ikema_dict_asr \
+       --epoch 100 \
+       --batch_size 16 \
+       --learning_rate 0.0003 \
        --script kana \
-       --wandb_run_name ikema-asr \
-       --repo_name ikema-asr
+       --wandb_run_name ikema-asr-indomain \
+       --repo_name ikema-asr-indomain
     
 cd -

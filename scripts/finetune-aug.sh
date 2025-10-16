@@ -14,10 +14,11 @@ export WANDB_PROJECT="ikema_asr"
 module load python
 poetry run python finetune.py \
        --dataset ikema_youtube_asr_aug \
+       --load_from_disk \
        --eval_dataset ikema_youtube_asr_test \
        --epoch 30 \
-       --script romaji \
-       --wandb_run_name ikema-asr-youtube-aug-romaji \
-       --repo_name ikema-asr-youtube-aug-romaji
+       --script kana \
+       --wandb_run_name ikema-asr-youtube-aug \
+       --repo_name ikema-asr-youtube-aug
     
 cd -
