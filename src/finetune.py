@@ -17,6 +17,11 @@ import jiwer
 import re
 import os
 import wandb
+import string
+
+# for Japanese text processing
+import pykakasi
+import sudachipy
 
 # local imports
 # import prepare_youtube_dataset
@@ -61,8 +66,9 @@ def load_data(main_dataset: str,
         })
     else:
         additional_data = load_data_from_hf(story_dataset) # add the youtube test set for more data
-        lecture_data = load_data_from_hf(lecture_dataset)
-        dataset = concatenate_datasets([dataset, additional_data, lecture_data])
+        # lecture_data = load_data_from_hf(lecture_dataset)
+        # dataset = concatenate_datasets([dataset, additional_data, lecture_data])
+        dataset = concatenate_datasets([dataset, additional_data]) # lecture_data is already included in the main dataset
         
         if use_dict_dataset:
             dict_data = load_data_from_hf(dict_dataset)
@@ -261,6 +267,91 @@ class DataCollatorCTCWithPadding:
         batch["labels"] = labels
 
         return batch
+    
+
+class PrefinetuneDataProcessor:
+    """A class to process data for pre-finetuning in Japanese."""
+    def __init__(self,
+                 script: str = "kana"):
+        self.kks = pykakasi.kakasi()
+        self.tokenizer_obj = sudachipy.dictionary.Dictionary().create()
+        self.tokenize_mode = sudachipy.tokenizer.Tokenizer.SplitMode.C
+        self.script = script
+
+    def process(self, batch: dict) -> dict:
+        batch["sentence"] = self.remove_punctuation(batch["sentence"])
+        batch["sentence"] = self.tokenize_kanjikana(batch["sentence"])
+        batch["sentence"] = self.to_kana(batch["sentence"])
+        if not self.script == "kana":
+            return batch
+        elif self.script == "romaji":
+            batch["sentence"] = self.to_romaji(batch["sentence"])
+        else:
+            raise NotImplementedError("Invalid script. Choose from 'kana' or 'romaji'.")
+        return batch
+
+    def remove_punctuation_batch(self, batch: dict) -> dict:
+        chars_to_ignore_regex = "[\,\?\.\!\-\;\:\"]"
+        japanese_punct_regex = "[、。；：？！（）＞＜，．＠『』「」＝〜％＆＃＋＊]"
+        s = batch["sentence"]
+        s = s.translate(str.maketrans("", "", string.punctuation)) # remove English punctuation
+        s = re.sub(chars_to_ignore_regex, "", s)
+        s = re.sub(japanese_punct_regex, "", s)
+        batch["sentence"] = s
+        return batch
+    
+    def remove_punctuation(self, s: str) -> dict:
+        chars_to_ignore_regex = "[\,\?\.\!\-\;\:\"]"
+        japanese_punct_regex = "[、。；：？！（）＞＜，．＠『』「」＝〜％＆＃＋＊]"
+        s = s.translate(str.maketrans("", "", string.punctuation)) # remove English punctuation
+        s = re.sub(chars_to_ignore_regex, "", s)
+        s = re.sub(japanese_punct_regex, "", s)
+        return s
+
+    def tokenize_kanjikana_batch(self, batch: dict) -> dict:
+        """Insert whitespaces at word boundaries."""
+        text = batch["sentence"]
+        words = [m.surface() for m in self.tokenizer_obj.tokenize(text, self.tokenize_mode)]
+        batch["sentence"] = " ".join(words)
+        return batch
+    
+    def tokenize_kanjikana(self, s: str) -> dict:
+        """Insert whitespaces at word boundaries."""
+        words = [m.surface() for m in self.tokenizer_obj.tokenize(s, self.tokenize_mode)]
+        return " ".join(words)
+
+    def to_kana_batch(self, batch: dict) -> dict:
+        """Convert kanji to kana using sudachipy (for map function)"""
+        text = batch["sentence"]
+        reading = " ".join([m.reading_form() for m in self.tokenizer_obj.tokenize(text, self.tokenize_mode)])
+        batch["sentence"] = reading
+        return batch
+    
+    def to_kana(self, s: str) -> str:
+        """Convert kanji to kana using sudachipy"""
+        reading = " ".join([m.reading_form() for m in self.tokenizer_obj.tokenize(s, self.tokenize_mode)])
+        return reading
+
+    def to_roma_batch(self, batch: dict) -> dict:
+        """Convert kana to Hepburn romaji (for map function)"""
+        text = batch["sentence"].replace("ッ", "q").split() # sokuon replacement
+        romaji = []
+        for t in text:
+            roma = self.kks.convert(t) # -> dict
+            roma = "".join([r["hepburn"] for r in roma])
+            romaji.append(roma)
+        batch["sentence"] = " ".join(romaji)
+        return batch
+
+    def to_roma(self, s: str) -> str:
+        """Convert kana to Hepburn romaji (for map function)"""
+        text = s.replace("ッ", "q").split() # sokuon replacement
+        romaji = []
+        for t in text:
+            roma = self.kks.convert(t) # -> dict
+            roma = "".join([r["hepburn"] for r in roma])
+            romaji.append(roma)
+        return " ".join(romaji)
 
 
 def get_args() -> argparse.Namespace:
@@ -394,6 +485,17 @@ def get_args() -> argparse.Namespace:
         default=16,
         help="Batch size per GPU/TPU core/CPU for training.",
     )
+    parser.add_argument(
+        "--prefinetune",
+        action="store_true",
+        help="Whether to do pre-finetuning in Japanese.",
+    )
+    parser.add_argument(
+        "--prefinetune_samples",
+        type=int,
+        default=1000,
+        help="The number of samples to use for pre-finetuning."
+    )
     
     # Misc group
     parser.add_argument(
@@ -480,6 +582,21 @@ if __name__ == "__main__":
                       num_proc=args.num_proc)
     dev = dev.map(remove_tags,
                   num_proc=args.num_proc)
+    
+    if args.prefinetune:
+        ja_data = load_dataset("mozilla-foundation/common_voice_17_0",
+                               "ja",
+                               split="train")
+        ja_data = ja_data.remove_columns(["client_id", "path", "sentence",
+                                          "up_votes", "down_votes", "age",
+                                          "gender", "accent", "locale",
+                                          "segment", "variant"])
+        ja_data = ja_data.shuffle(seed=42).select(range(args.prefinetune_samples))
+        dataprocessor = PrefinetuneDataProcessor(script=args.script)
+        ja_data = ja_data.map(dataprocessor.process,
+                              num_proc=args.num_proc)
+        ja_data = ja_data.rename_column("sentence", "transcription")
+        train = concatenate_datasets([ja_data, train])
 
     vocab_file = prepare_vocab(train,
                                repo_name=args.repo_name,
