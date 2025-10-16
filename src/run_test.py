@@ -32,7 +32,37 @@ def get_args() -> argparse.Namespace:
         default=MODEL_NAME,
         help="Model name or path."
     )
+    parser.add_argument(
+        "-b",
+        "--batch_size",
+        type=int,
+        default=16,
+        help="Batch size for inference."
+    )
     return parser.parse_args()
+
+
+def predict(batch):
+    # Prepare input features
+    arrays = [x["array"] for x in batch["audio"]]
+    sampling_rate = batch["audio"][0]["sampling_rate"]
+    
+    inputs = processor(
+        arrays,
+        sampling_rate=sampling_rate,
+        return_tensors="pt",
+        padding=True
+    )
+
+    input_values = inputs.input_values.to(device)
+
+    with torch.no_grad():
+        logits = model(input_values).logits
+
+    pred_ids = torch.argmax(logits, dim=-1)
+    batch["predicted_text"] = processor.batch_decode(pred_ids,
+                                                     skip_special_tokens=True)
+    return batch
 
 
 if __name__ == "__main__":
@@ -70,32 +100,18 @@ if __name__ == "__main__":
     model.eval()
 
     if args.test:
-        preds = []
-        refs = []
-        for i in trange(len(test)):
-            audio = test[i]["audio"]
-            waveform = torch.tensor(audio["array"]).unsqueeze(0)
-            sr = audio["sampling_rate"]
-
-            inputs = processor(
-                waveform.squeeze().numpy(),
-                sampling_rate=sr,
-                return_tensors="pt",
-                padding=True
-            )
-            input_values = inputs.input_values.to(device)
-
-            with torch.no_grad():
-                logits = model(input_values).logits
-            pred_ids = torch.argmax(logits, dim=-1)
-            decoded_text = processor.batch_decode(pred_ids)[0]
-
-            preds.append(decoded_text)
-            refs.append(test[i]["transcription"])
-
+        results = test.map(predict,
+                           batched=True,
+                           batch_size=args.batch_size)
         # metrics
         print("Inference done.")
         print("Computing the metrics...")
+        if args.model_name.endswith("romaji-ph"):
+            refs = results["romaji"]
+        else:
+            refs = results["transcription"]
+        preds = results["predicted_text"]
+        
         wer = jiwer.wer(refs, preds)
         cer = jiwer.cer(refs, preds)
 
@@ -109,7 +125,7 @@ if __name__ == "__main__":
             "refs": refs
         }
 
-        results_file = os.path.join(MODEL_NAME, "metrics.json")
+        results_file = os.path.join(args.model_name, "metrics.json")
         with open(results_file, "w") as f:
             json.dump(results,
                       f,
