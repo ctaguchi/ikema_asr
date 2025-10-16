@@ -25,6 +25,13 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="test mode."
     )
+    parser.add_argument(
+        "-m",
+        "--model_name",
+        type=str,
+        default=MODEL_NAME,
+        help="Model name or path."
+    )
     return parser.parse_args()
 
 
@@ -48,8 +55,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Used device: {device}")
     print("Loading the model...")
-    processor = AutoProcessor.from_pretrained(MODEL_NAME)
-    model = AutoModelForCTC.from_pretrained(MODEL_NAME).to(device)
+    processor = AutoProcessor.from_pretrained(args.model_name)
+    model = AutoModelForCTC.from_pretrained(args.model_name).to(device)
     print("Model and processor loaded.")
 
     # TODO: The vocab has "[PAD]" and "[UNK]", which are added manually when training,
