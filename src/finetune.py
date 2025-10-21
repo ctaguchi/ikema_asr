@@ -270,7 +270,11 @@ class DataCollatorCTCWithPadding:
     
 
 class PrefinetuneDataProcessor:
-    """A class to process data for pre-finetuning in Japanese."""
+    """A class to process data for pre-finetuning in Japanese.
+    We might need some more conversion functions here to further
+    preprocess the Japanese kana text into the desired format,
+    namely Ikema orthography.
+    """
     def __init__(self,
                  script: str = "kana"):
         self.kks = pykakasi.kakasi()
@@ -282,6 +286,7 @@ class PrefinetuneDataProcessor:
         batch["sentence"] = self.remove_punctuation(batch["sentence"])
         batch["sentence"] = self.tokenize_kanjikana(batch["sentence"])
         batch["sentence"] = self.to_kana(batch["sentence"])
+        batch["sentence"] = self.to_ikema_orth(batch["sentence"])
         if not self.script == "kana":
             return batch
         elif self.script == "romaji":
@@ -352,6 +357,44 @@ class PrefinetuneDataProcessor:
             roma = "".join([r["hepburn"] for r in roma])
             romaji.append(roma)
         return " ".join(romaji)
+    
+    def to_ikema_orth(self, s: str) -> str:
+        """Convert Japanese kana to Ikema orthography.
+        
+        Args:
+            s (str): Input string in kana.
+        Returns:
+            str: Converted string in Ikema orthography.
+        """
+        def is_adan(c: str) -> bool:
+            return c in {"あ", "か", "さ", "た", "な", "は", "ま", "や",
+                         "ら", "わ", "が", "ざ", "だ", "ば", "ぱ", "ゃ", "ぁ"}
+        def is_idan(c: str) -> bool:
+            return c in {"い", "き", "し", "ち", "に", "ひ", "み", "り",
+                         "ぎ", "じ", "ぢ", "び", "ぴ", "ぃ"}
+        def is_udan(c: str) -> bool:
+            return c in {"う", "く", "す", "つ", "ぬ", "ふ", "む", "ゆ",
+                         "る", "ぐ", "ず", "づ", "ぶ", "ぷ", "ゅ", "ぅ"}
+        def is_edan(c: str) -> bool:
+            return c in {"え", "け", "せ", "て", "ね", "へ", "め", "れ",
+                         "げ", "ぜ", "で", "べ", "ぺ", "ぇ"}
+        def is_odan(c: str) -> bool:
+            return c in {"お", "こ", "そ", "と", "の", "ほ", "も", "よ",
+                         "ろ", "を", "ご", "ぞ", "ど", "ぼ", "ぽ", "ょ", "ぉ"}
+        
+        chars = list(s)
+        for i, c in enumerate(chars):
+            if c == "あ" and i > 0 and is_adan(chars[i-1]):
+                chars[i] = "ー"
+            elif c == "い" and i > 0 and is_idan(chars[i-1]):
+                chars[i] = "ー"
+            elif c == "う" and i > 0 and is_udan(chars[i-1]):
+                chars[i] = "ー"
+            elif c == "え" and i > 0 and is_edan(chars[i-1]):
+                chars[i] = "ー"
+            elif c == "お" and i > 0 and (is_odan(chars[i-1]) or is_udan(chars[i-1])):
+                chars[i] = "ー"
+        return "".join(chars)
 
 
 def get_args() -> argparse.Namespace:
