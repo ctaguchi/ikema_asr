@@ -10,7 +10,7 @@ import os
 from finetune import load_data
 
 MODEL_NAME = "ikema-asr-indomain-ph"
-MAIN_DATA = "ikema_youtube_asr"
+MAIN_DATA = "ikema_youtube_asr_full"
 DICT_DATA = "ikema_dict_asr"
 STORY_DATA = "ikema_youtube_asr_test"
 LECTURE_DATA = "ikema_youtube_asr_hougenkougi"

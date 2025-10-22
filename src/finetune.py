@@ -66,8 +66,6 @@ def load_data(main_dataset: str,
         })
     else:
         additional_data = load_data_from_hf(story_dataset) # add the youtube test set for more data
-        # lecture_data = load_data_from_hf(lecture_dataset)
-        # dataset = concatenate_datasets([dataset, additional_data, lecture_data])
         dataset = concatenate_datasets([dataset, additional_data]) # lecture_data is already included in the main dataset
         
         if use_dict_dataset:
