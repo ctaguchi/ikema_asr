@@ -569,6 +569,11 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="If set, the fine-tuned model will be pushed to Hugging Face Hub."
     )
+    parser.add_argument(
+        "--finetune_on_ja",
+        action="store_true",
+        help="If set, the model will be finetuned on Japanese data."
+    )
 
     return parser.parse_args()
 
