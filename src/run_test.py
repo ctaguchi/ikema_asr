@@ -107,7 +107,7 @@ if __name__ == "__main__":
         # metrics
         print("Inference done.")
         print("Computing the metrics...")
-        if args.model_name.endswith("romaji-ph"):
+        if "romaji" in args.model_name:
             refs = [remove_tags(r) for r in results["romaji"]]
         else:
             refs = [remove_tags(r) for r in results["transcription"]]
