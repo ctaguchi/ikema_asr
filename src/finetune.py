@@ -90,6 +90,10 @@ def load_data(main_dataset: str,
     return dataset_dict
 
 
+def load_ja_data() -> DatasetDict:
+    ...
+
+
 def generate_data() -> Dataset:
     ...
 
@@ -583,6 +587,9 @@ if __name__ == "__main__":
 
     if args.generate_dataset:
         raise NotImplementedError
+    
+    if args.finetune_on_ja:
+        ...
     
     dataset_dict = load_data(
         main_dataset=args.dataset,
