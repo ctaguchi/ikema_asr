@@ -8,6 +8,7 @@ import os
 
 # local imports
 from finetune import load_data
+from utils import remove_tags
 
 MODEL_NAME = "ikema-asr-indomain-ph"
 MAIN_DATA = "ikema_youtube_asr_full"
@@ -107,9 +108,9 @@ if __name__ == "__main__":
         print("Inference done.")
         print("Computing the metrics...")
         if args.model_name.endswith("romaji-ph"):
-            refs = results["romaji"]
+            refs = [remove_tags(r) for r in results["romaji"]]
         else:
-            refs = results["transcription"]
+            refs = [remove_tags(r) for r in results["transcription"]]
         preds = results["predicted_text"]
         
         wer = jiwer.wer(refs, preds)
