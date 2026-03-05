@@ -6,6 +6,7 @@ from transformers import (Wav2Vec2CTCTokenizer,
                           Wav2Vec2FeatureExtractor,
                           Wav2Vec2Processor,
                           Wav2Vec2ForCTC,
+                          HubertForCTC,
                           TrainingArguments,
                           Trainer)
 from audiomentations import Compose, PitchShift, AddBackgroundNoise, TimeStretch
@@ -116,19 +117,20 @@ def make_vocab(dataset: Dataset) -> set:
 
 
 def prepare_vocab(dataset: Dataset,
-                  repo_name: str,
-                  phonemic_vocab: bool) -> str:
+                  output_dir: str,
+                  phonemic_vocab: bool,
+                  script: str) -> str:
     """Prepare vocab for training."""
-    vocab_file = os.path.join(repo_name, "vocab.json")
-    os.makedirs(repo_name, exist_ok=True)
+    vocab_file = os.path.join(output_dir, "vocab.json")
+    os.makedirs(output_dir, exist_ok=True)
     vocab = make_vocab(dataset)
     
     if phonemic_vocab:
         # use a predefined digraph kana set
-        if args.script == "romaji":
+        if script == "romaji":
             with open("romaji_vocab.txt", "r") as f:
                 phonemes = f.read().splitlines()
-        elif args.script == "phoneme":
+        elif script == "phoneme":
             with open("phoneme_vocab.txt", "r") as f:
                 phonemes = f.read().splitlines()
         else: # kana
@@ -494,6 +496,13 @@ def get_args() -> argparse.Namespace:
         "--model",
         type=str,
         default="facebook/wav2vec2-xls-r-300m",
+        choices=["facebook/wav2vec2-large-xlsr-53",
+                 "facebook/wav2vec2-xls-r-300m",
+                 "facebook/wav2vec2-xls-r-1b",
+                 "facebook/mms-1b",
+                 "facebook/mms-1b-all", # TODO: Implement freeze_base_model() option
+                 "facebook/hubert-large-ll60k",
+                 "facebook/hubert-xlarge-ll60k"],
         help="The name of the model to use",
     )
     parser.add_argument(
@@ -541,6 +550,11 @@ def get_args() -> argparse.Namespace:
         default=1000,
         help="The number of samples to use for pre-finetuning."
     )
+    parser.add_argument(
+        "--freeze_base_model",
+        action="store_true",
+        help="If set, base model will be frozen (available in mms-1b-all)"
+    )
     
     # Misc group
     parser.add_argument(
@@ -548,6 +562,12 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="wav2vec2-xls-r-300m-ikema",
         help="The name of the repository to use",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="model/wav2vec2-xls-r-300m-ikema",
+        help="The local directory name to save the model."
     )
     parser.add_argument(
         "--script",
@@ -590,7 +610,9 @@ if __name__ == "__main__":
     
     if args.finetune_on_ja:
         ...
+        raise NotImplementedError
     
+    # dataset
     dataset_dict = load_data(
         main_dataset=args.dataset,
         eval_data=bool(args.eval_dataset),
@@ -628,9 +650,9 @@ if __name__ == "__main__":
     except KeyError as e:
         print("WandB API key not found in the environment.")
         print(e)
-    
     wandb.login(key=wandb_api_key)
 
+    # clean the text
     train = train.map(remove_tags,
                       num_proc=args.num_proc)
     dev = dev.map(remove_tags,
@@ -652,15 +674,25 @@ if __name__ == "__main__":
         train = concatenate_datasets([ja_data, train])
 
     vocab_file = prepare_vocab(train,
-                               repo_name=args.repo_name,
-                               phonemic_vocab=args.phonemic_vocab)
+                               output_dir=args.output_dir,
+                               phonemic_vocab=args.phonemic_vocab,
+                               script=args.script)
 
-    tokenizer = Wav2Vec2CTCTokenizer(
-        vocab_file=vocab_file,
-        unk_token="[UNK]",
-        pad_token="[PAD]",
-        word_delimiter_token="|"
-    )
+    if args.model == "facebook/mms-1b-all":
+        tokenizer = Wav2Vec2CTCTokenizer(
+            args.output_dir,
+            unk_token="[UNK]",
+            pad_token="[PAD]",
+            word_delimiter_token="|",
+            target_lang="mmy" # <- this is necessary for mms-1b-all to work properly, as it uses the target_lang info to condition the model
+        )
+    else:
+        tokenizer = Wav2Vec2CTCTokenizer(
+            vocab_file=vocab_file,
+            unk_token="[UNK]",
+            pad_token="[PAD]",
+            word_delimiter_token="|"
+        )
 
     feature_extractor = Wav2Vec2FeatureExtractor(
         feature_size=1,
@@ -700,20 +732,43 @@ if __name__ == "__main__":
         padding=True
     )
 
-    model = Wav2Vec2ForCTC.from_pretrained(
-        args.model,
-        attention_dropout=0.0,
-        hidden_dropout=0.0,
-        feat_proj_dropout=0.0,
-        mask_time_prob=0.05,
-        layerdrop=0.0,
-        ctc_loss_reduction="mean",
-        pad_token_id=processor.tokenizer.pad_token_id,
-        vocab_size=len(processor.tokenizer),
-    )
-    
-    if args.freeze_feature_encoder:
-        model.freeze_feature_encoder() # prevents overfitting, faster training
+    if "hubert" in args.model:
+        model = HubertForCTC.from_pretrained(
+            args.model_name,
+            attention_dropout=0.0,
+            hidden_dropout=0.0,
+            feat_proj_dropout=0.0,
+            mask_time_prob=0.05,
+            layerdrop=0.0,
+            ctc_loss_reduction="mean",
+            pad_token_id=processor.tokenizer.pad_token_id,
+            vocab_size=len(processor.tokenizer),
+        )
+        if args.freeze_feature_encoder:
+            model.freeze_feature_encoder()
+        if args.freeze_base_model:
+            model.freeze_base_model()
+    else:
+        model = Wav2Vec2ForCTC.from_pretrained(
+            args.model,
+            attention_dropout=0.0,
+            hidden_dropout=0.0,
+            feat_proj_dropout=0.0,
+            mask_time_prob=0.05,
+            layerdrop=0.0,
+            ctc_loss_reduction="mean",
+            pad_token_id=processor.tokenizer.pad_token_id,
+            vocab_size=len(processor.tokenizer),
+        )
+
+        if args.model_name == "facebook/mms-1b-all":
+            if args.init_adapter_layers:
+                model.init_adapter_layers()
+                
+        if args.freeze_feature_encoder:
+            model.freeze_feature_encoder() # prevents overfitting, faster training
+        if args.freeze_base_model:
+            model.freeze_base_model()
 
     training_args = TrainingArguments(
         output_dir=args.repo_name,
