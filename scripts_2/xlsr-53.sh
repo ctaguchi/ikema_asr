@@ -13,15 +13,16 @@ export WANDB_PROJECT="ikema_asr"
 REPO_NAME="xlsr-53-ikema-kana"
 RUN_NAME="xlsr-53-ikema-kana"
 MODEL="facebook/wav2vec2-large-xlsr-53"
+OUTPUT_DIR="../models/${REPO_NAME}"
 
 module load python
 poetry run python finetune.py \
        --dataset ikema_youtube_asr_full \
-       --eval_dataset ikema_youtube_asr_test \
        --model ${MODEL} \
        --epoch 30 \
        --script kana \
        --wandb_run_name ${RUN_NAME} \
-       --repo_name ${REPO_NAME}
+       --repo_name ${REPO_NAME} \
+       --output_dir ${OUTPUT_DIR}
     
 cd -
