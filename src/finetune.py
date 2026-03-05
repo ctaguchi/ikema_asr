@@ -734,7 +734,7 @@ if __name__ == "__main__":
 
     if "hubert" in args.model:
         model = HubertForCTC.from_pretrained(
-            args.model_name,
+            args.model,
             attention_dropout=0.0,
             hidden_dropout=0.0,
             feat_proj_dropout=0.0,
@@ -761,7 +761,7 @@ if __name__ == "__main__":
             vocab_size=len(processor.tokenizer),
         )
 
-        if args.model_name == "facebook/mms-1b-all":
+        if args.model == "facebook/mms-1b-all":
             if args.init_adapter_layers:
                 model.init_adapter_layers()
                 
