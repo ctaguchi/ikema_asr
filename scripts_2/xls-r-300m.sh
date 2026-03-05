@@ -14,7 +14,6 @@ REPO_NAME="xls-r-300m-ikema-kana"
 RUN_NAME="xls-r-300m-ikema-kana"
 MODEL="facebook/wav2vec2-xls-r-300m"
 
-module load python
 poetry run python finetune.py \
        --dataset ikema_youtube_asr_full \
        --eval_dataset ikema_youtube_asr_test \
