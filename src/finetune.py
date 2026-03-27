@@ -1,4 +1,5 @@
 import argparse
+from threading import local
 import dotenv
 from datasets import Dataset, DatasetDict, load_dataset, load_from_disk, concatenate_datasets
 import json
@@ -30,65 +31,57 @@ import sudachipy
 dotenv.load_dotenv()
 
 
-def load_data_from_hf(dataset_name: str) -> Dataset:
+def fetch_data(dataset_name: str = "ikema_youtube_asr_full_with_long",
+               load_from_disk: bool = False) -> DatasetDict:
     """Load the dataset from huggingface"""
     username = "ctaguchi"
-    dataset = load_dataset(f"{username}/{dataset_name}")
-    return dataset["train"]
-
-
-def load_data_locally(dataset_path: str) -> Dataset:
-    """Load the dataset locally."""
-    dataset = load_from_disk(dataset_path)
-    return dataset["train"]
-
-
-def load_data(main_dataset: str,
-              eval_data: bool = False,
-              load_from_disk: bool = False,
-              use_dict_dataset: bool = False,
-              story_dataset: Optional[str] = "ikema_youtube_asr_test",
-              lecture_dataset: Optional[str] = "ikema_youtube_asr_hougenkougi",
-              dict_dataset: Optional[str] = "ikema_youtube_asr_dict") -> DatasetDict:
-    """Load the dataset."""
     if load_from_disk:
-        dataset = load_data_locally(main_dataset)
+        dataset = load_from_disk(dataset_name)
     else:
-        dataset = load_data_from_hf(main_dataset)
+        dataset = load_dataset(f"{username}/{dataset_name}")
+    return dataset
 
-    if eval_data: # This is not recommended
-        story_data = load_data_from_hf(story_dataset)
-        print("Loaded story dataset:", story_dataset)
-        
-        dataset_dict = DatasetDict({
-            "train": dataset,
-            "dev": story_data,
-            "test": None
-        })
-    else:
-        additional_data = load_data_from_hf(story_dataset) # add the youtube test set for more data
-        dataset = concatenate_datasets([dataset, additional_data]) # lecture_data is already included in the main dataset
-        
-        if use_dict_dataset:
-            dict_data = load_data_from_hf(dict_dataset)
-            # Rename the dictionary column names
-            # originally, it has: "word_id", "word", "audio", "part_of_speech", "description", "example_sentence".
-            # we only need "word" and "audio"
-            dict_data = dict_data.rename_column("word", "transcription")
-            dict_data = dict_data.remove_columns(["word_id", "part_of_speech", "description", "example_sentence"])
-            dataset = concatenate_datasets([dataset, dict_data])
-            print("Using dictionary dataset:", dict_data)
 
-        train_devtest = dataset.train_test_split(test_size=0.2, seed=42)
-        test_valid = train_devtest["test"].train_test_split(test_size=0.5, seed=42)
+def load_data(main_dataset: str = "ikema_youtube_asr_full_with_long",
+              load_from_disk: bool = False,
+              dict_dataset: Optional[str] = "ikema_youtube_asr_dict",
+              dict_sentence_dataset: Optional[str] = "ikema_dictionary_examples_dataset") -> DatasetDict:
+    """Load the dataset.
+    Args:
+    - main_dataset (str): The main dataset to use for training.
+    - load_from_disk (bool): Whether to load the dataset from disk.
+    - dict_dataset (Optional[str]): The dictionary dataset to use for training. If None, the dictionary dataset will not be used.
+    - dict_sentence_dataset (Optional[str]): The dictionary sentence dataset to use for training. If None, the dictionary sentence dataset will not be used.
+    """
+    dataset: DatasetDict = fetch_data(main_dataset,
+                                      load_from_disk=load_from_disk)
+    print("Loaded main dataset:", main_dataset)
+    # This dataset contains the youtube data, the lecture data, and the audiobook data.
+    
+    if dict_dataset is not None:
+        dict_data: Dataset = fetch_data(dict_dataset,
+                                        load_from_disk=load_from_disk)["train"]
+        print("Loaded dictionary dataset:", dict_dataset)
         
-        dataset_dict = DatasetDict({
-            "train": train_devtest["train"],
-            "dev": test_valid["train"],
-            "test": test_valid["test"]
-            })
+        # originally, it has: "word_id", "word", "audio", "part_of_speech", "description", "example_sentence", "romaji", "phoneme".
+        # we only need "word", "audio", "romaji", and "phoneme".
+        dict_data = dict_data.rename_column("word", "transcription")
+        dict_data = dict_data.remove_columns(["word_id", "part_of_speech", "description", "example_sentence"])
+        print("Using dictionary dataset:", dict_dataset)
+        dataset["train"] = concatenate_datasets([dataset["train"], dict_data])
+        # The dict data is used for training only
+    
+    if dict_sentence_dataset is not None:
+        dict_sentence_data: Dataset = fetch_data(dict_sentence_dataset,
+                                                load_from_disk=load_from_disk)["train"]
+        print("Loaded dictionary sentence dataset:", dict_sentence_dataset)
+        # originally, it has "audio", "transcription", "ikema", "japanese", "romaji", "phoneme"
+        # we only need "transcription", "audio", "romaji", and "phoneme"
+        dict_sentence_data = dict_sentence_data.remove_columns(["ikema", "japanese"])
+        dataset["train"] = concatenate_datasets([dataset["train"], dict_sentence_data])
+        # The dict sentence data is used for training only
         
-    return dataset_dict
+    return dataset
 
 
 def load_ja_data() -> DatasetDict:
@@ -100,8 +93,9 @@ def generate_data() -> Dataset:
 
 
 def remove_tags(batch: Dict[str, str | dict]) -> dict:
-    """Count the total number of characters in an eaf annotation.
-    Ignore whitespaces.
+    """Remove metatags such as <ja>, <dis>, <unsure>, <song>, and <name> from the transcription text.
+    e.g. "<ja>tatoeba</ja>" -> "tatoeba"
+    This function is used for the map function of the dataset, so it takes a batch (dict) as input and returns a batch (dict) as output.
     """
     batch["text"] = re.sub(r"</?(ja|dis|unsure|song|name)>", "", batch["text"])
     return batch
@@ -112,7 +106,6 @@ def make_vocab(dataset: Dataset) -> set:
     vocab = set()
     for transcription in dataset["text"]:
         vocab.update(transcription)
-    
     return vocab
 
 
@@ -555,6 +548,43 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="If set, base model will be frozen (available in mms-1b-all)"
     )
+    parser.add_argument(
+        "--attention_dropout",
+        type=float,
+        default=0.0,
+        help="The dropout ratio for the attention probabilities."
+    )
+    parser.add_argument(
+        "--hidden_dropout",
+        type=float,
+        default=0.0,
+        help="The dropout ratio for the hidden states."
+    )
+    parser.add_argument(
+        "--feat_proj_dropout",
+        type=float,
+        default=0.0,
+        help="The dropout ratio for the feature projection layer."
+    )
+    parser.add_argument(
+        "--mask_time_prob",
+        type=float,
+        default=0.05,
+        help="The probability of masking a time step in the input feature sequence."
+    )
+    parser.add_argument(
+        "--layerdrop",
+        type=float,
+        default=0.0,
+        help="The dropout ratio for the layers."
+    )
+    parser.add_argument(
+        "--ctc_loss_reduction",
+        type=str,
+        default="mean",
+        choices=["mean", "sum", "none"],
+        help="The reduction method to apply to the output of the CTC loss."
+    )
     
     # Misc group
     parser.add_argument(
@@ -615,12 +645,9 @@ if __name__ == "__main__":
     # dataset
     dataset_dict = load_data(
         main_dataset=args.dataset,
-        eval_data=bool(args.eval_dataset),
         load_from_disk=args.load_from_disk,
-        use_dict_dataset=args.use_dict_dataset,
-        story_dataset=args.story_dataset,
-        lecture_dataset=args.lecture_dataset,
-        dict_dataset=args.dict_dataset_path
+        dict_dataset=args.dict_dataset_path,
+        dict_sentence_dataset=args.story_dataset
     )
     
     # match the variables
@@ -694,6 +721,7 @@ if __name__ == "__main__":
             word_delimiter_token="|"
         )
 
+    # TODO: Prepare HuBERT feature extractor if the model is HuBERT
     feature_extractor = Wav2Vec2FeatureExtractor(
         feature_size=1,
         sampling_rate=16000,
@@ -701,7 +729,8 @@ if __name__ == "__main__":
         do_normalize=True,
         return_attention_mask=True
     )
-
+    
+    # TODO: Prepare HuBERT processor if the model is HuBERT
     processor = Wav2Vec2Processor(
         feature_extractor=feature_extractor,
         tokenizer=tokenizer
@@ -721,6 +750,7 @@ if __name__ == "__main__":
 
     else:
         augmentor = None
+    
     dataset = train.map(prepare_dataset,
                         fn_kwargs={"augmentor": augmentor},
                         remove_columns=train.column_names)
@@ -735,12 +765,12 @@ if __name__ == "__main__":
     if "hubert" in args.model:
         model = HubertForCTC.from_pretrained(
             args.model,
-            attention_dropout=0.0,
-            hidden_dropout=0.0,
-            feat_proj_dropout=0.0,
-            mask_time_prob=0.05,
-            layerdrop=0.0,
-            ctc_loss_reduction="mean",
+            attention_dropout=args.attention_dropout,
+            hidden_dropout=args.hidden_dropout,
+            feat_proj_dropout=args.feat_proj_dropout,
+            mask_time_prob=args.mask_time_prob,
+            layerdrop=args.layerdrop,
+            ctc_loss_reduction=args.ctc_loss_reduction,
             pad_token_id=processor.tokenizer.pad_token_id,
             vocab_size=len(processor.tokenizer),
         )
@@ -751,12 +781,12 @@ if __name__ == "__main__":
     else:
         model = Wav2Vec2ForCTC.from_pretrained(
             args.model,
-            attention_dropout=0.0,
-            hidden_dropout=0.0,
-            feat_proj_dropout=0.0,
-            mask_time_prob=0.05,
-            layerdrop=0.0,
-            ctc_loss_reduction="mean",
+            attention_dropout=args.attention_dropout,
+            hidden_dropout=args.hidden_dropout,
+            feat_proj_dropout=args.feat_proj_dropout,
+            mask_time_prob=args.mask_time_prob,
+            layerdrop=args.layerdrop,
+            ctc_loss_reduction=args.ctc_loss_reduction,
             pad_token_id=processor.tokenizer.pad_token_id,
             vocab_size=len(processor.tokenizer),
         )
@@ -771,7 +801,7 @@ if __name__ == "__main__":
             model.freeze_base_model()
 
     training_args = TrainingArguments(
-        output_dir=args.repo_name,
+        output_dir=args.output_dir,
         group_by_length=True,
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=2,
@@ -787,6 +817,7 @@ if __name__ == "__main__":
         save_total_limit=2,
         push_to_hub=args.push_to_hub,
         hub_token=os.environ["HF_TOKEN"],
+        hub_model_id=args.repo_name,
         report_to="wandb",
         run_name=args.wandb_run_name,
     )
