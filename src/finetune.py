@@ -112,7 +112,9 @@ def make_vocab(dataset: Dataset) -> set:
 def prepare_vocab(dataset: Dataset,
                   output_dir: str,
                   phonemic_vocab: bool,
-                  script: str) -> str:
+                  script: str,
+                  language: str = "mvi",
+                  is_mms_1b_all: bool = False) -> str:
     """Prepare vocab for training."""
     vocab_file = os.path.join(output_dir, "vocab.json")
     os.makedirs(output_dir, exist_ok=True)
@@ -140,6 +142,9 @@ def prepare_vocab(dataset: Dataset,
     # Add special characters
     vocab_dict["[UNK]"] = len(vocab_dict)
     vocab_dict["[PAD]"] = len(vocab_dict)
+    
+    if is_mms_1b_all:
+        vocab_dict = {language: vocab_dict}
 
     with open(vocab_file, "w") as f:
         json.dump(vocab_dict, f)
@@ -686,7 +691,8 @@ if __name__ == "__main__":
     vocab_file = prepare_vocab(train,
                                output_dir=args.output_dir,
                                phonemic_vocab=args.phonemic_vocab,
-                               script=args.script)
+                               script=args.script,
+                               is_mms_1b_all=(args.model == "facebook/mms-1b-all"))
 
     if args.model == "facebook/mms-1b-all":
         tokenizer = Wav2Vec2CTCTokenizer(
@@ -694,7 +700,7 @@ if __name__ == "__main__":
             unk_token="[UNK]",
             pad_token="[PAD]",
             word_delimiter_token="|",
-            target_lang="mmy" # <- this is necessary for mms-1b-all to work properly, as it uses the target_lang info to condition the model
+            target_lang="mvi" # <- this is necessary for mms-1b-all to work properly, as it uses the target_lang info to condition the model
         )
     else:
         tokenizer = Wav2Vec2CTCTokenizer(
