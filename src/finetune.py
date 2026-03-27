@@ -400,7 +400,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=str,
-        default="ikema_asr",
+        default="ikema_youtube_asr_full_with_long",
         help="The name of the dataset to use",
     )
     parser.add_argument(
