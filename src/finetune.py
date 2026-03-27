@@ -404,12 +404,6 @@ def get_args() -> argparse.Namespace:
         help="The name of the dataset to use",
     )
     parser.add_argument(
-        "--eval_dataset",
-        type=str,
-        default=None,
-        help="The evaluation (validation) dataset."
-    )
-    parser.add_argument(
         "--generate_dataset",
         action="store_true",
         help="Generate a dataset upon training instead of loading from HF"
@@ -420,27 +414,16 @@ def get_args() -> argparse.Namespace:
         help="Load a dataset locally."
     )
     parser.add_argument(
-        "--use_dict_dataset",
-        action="store_true",
-        help="Whether to use a dictionary dataset."
-    )
-    parser.add_argument(
         "--dict_dataset_path",
         type=str,
         default="ikema_dict_asr",
         help="Path to the local dictionary dataset."
     )
     parser.add_argument(
-        "--lecture_dataset",
+        "--dict_sentence_dataset",
         type=str,
-        default="ikema_youtube_asr_hougenkougi",
-        help="The lecture dataset to use."
-    )
-    parser.add_argument(
-        "--story_dataset",
-        type=str,
-        default="ikema_youtube_asr_test",
-        help="The story dataset to use."
+        default="ikema_dictionary_examples_dataset",
+        help="The dictionary sentence dataset to use."
     )
 
     # Data augmentation group
@@ -647,7 +630,7 @@ if __name__ == "__main__":
         main_dataset=args.dataset,
         load_from_disk=args.load_from_disk,
         dict_dataset=args.dict_dataset_path,
-        dict_sentence_dataset=args.story_dataset
+        dict_sentence_dataset=args.dict_sentence_dataset
     )
     
     # match the variables
