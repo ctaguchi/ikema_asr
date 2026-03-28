@@ -50,7 +50,8 @@ def fetch_data(dataset_name: str = "ikema_youtube_asr_full_with_long",
 def load_data(main_dataset: str = "ikema_youtube_asr_full_with_long",
               load_from_disk: bool = False,
               dict_dataset: Optional[str] = "ikema_youtube_asr_dict",
-              dict_sentence_dataset: Optional[str] = "ikema_dictionary_examples_dataset") -> DatasetDict:
+              dict_sentence_dataset: Optional[str] = "ikema_dictionary_examples_dataset",
+              long_segment: Optional[bool] = False) -> DatasetDict:
     """Load the dataset.
     Args:
     - main_dataset (str): The main dataset to use for training.
@@ -60,6 +61,10 @@ def load_data(main_dataset: str = "ikema_youtube_asr_full_with_long",
     """
     dataset: DatasetDict = fetch_data(main_dataset,
                                       load_from_disk=load_from_disk)
+    if long_segment:
+        dataset["train"] = dataset["longtrain"]
+        dataset["dev"] = dataset["longdev"]
+        
     print("Loaded main dataset:", main_dataset)
     # This dataset contains the youtube data, the lecture data, and the audiobook data.
     
@@ -434,6 +439,11 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="ikema_dictionary_examples_dataset",
         help="The dictionary sentence dataset to use."
+    )
+    parser.add_argument(
+        "--long_segment",
+        action="store_true",
+        help="Whether to use long segments.",
     )
 
     # Data augmentation group
