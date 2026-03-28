@@ -578,6 +578,11 @@ def get_args() -> argparse.Namespace:
         choices=["mean", "sum", "none"],
         help="The reduction method to apply to the output of the CTC loss."
     )
+    parser.add_argument(
+        "--init_adapter_layers",
+        action="store_true",
+        help="If set, the adapter layers will be initialized with the weights of the original model (available in mms-1b-all)."
+    )
     
     # Misc group
     parser.add_argument(
