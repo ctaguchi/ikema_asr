@@ -10,6 +10,8 @@ from transformers import (Wav2Vec2CTCTokenizer,
                           HubertForCTC,
                           TrainingArguments,
                           Trainer)
+from transformers.models.wav2vec2.modeling_wav2vec2 import WAV2VEC2_ADAPTER_SAFE_FILE
+from safetensors.torch import save_file as safe_save_file
 from audiomentations import Compose, PitchShift, AddBackgroundNoise, TimeStretch
 from typing import Union, Optional, Any, Dict, List
 from dataclasses import dataclass
@@ -29,6 +31,9 @@ import sudachipy
 # import prepare_youtube_dataset
 
 dotenv.load_dotenv()
+
+
+LANG = "mvi" # language code for mms-1b-all
 
 
 def fetch_data(dataset_name: str = "ikema_youtube_asr_full_with_long",
@@ -695,7 +700,7 @@ if __name__ == "__main__":
                                is_mms_1b_all=(args.model == "facebook/mms-1b-all"))
 
     if args.model == "facebook/mms-1b-all":
-        tokenizer = Wav2Vec2CTCTokenizer(
+        tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
             args.output_dir,
             unk_token="[UNK]",
             pad_token="[PAD]",
@@ -710,7 +715,6 @@ if __name__ == "__main__":
             word_delimiter_token="|"
         )
 
-    # TODO: Prepare HuBERT feature extractor if the model is HuBERT
     feature_extractor = Wav2Vec2FeatureExtractor(
         feature_size=1,
         sampling_rate=16000,
@@ -719,7 +723,6 @@ if __name__ == "__main__":
         return_attention_mask=True
     )
     
-    # TODO: Prepare HuBERT processor if the model is HuBERT
     processor = Wav2Vec2Processor(
         feature_extractor=feature_extractor,
         tokenizer=tokenizer
@@ -829,6 +832,13 @@ if __name__ == "__main__":
     trainer.evaluate()
     trainer.save_state()
     trainer.save_model()
+    
+    lang
+    if args.model_name == "facebook/mms-1b-all":
+        # Save the adapter
+        adapter_file = WAV2VEC2_ADAPTER_SAFE_FILE.format(LANG)
+        adapter_file = os.path.join(args.output_dir, adapter_file)
+        safe_save_file(model._get_adapters(), adapter_file, metadata={"format": "pt"})
 
     # if args.push_to_hub:
     #     model.push_to_hub(args.repo_name,
