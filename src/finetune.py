@@ -781,6 +781,7 @@ if __name__ == "__main__":
             ctc_loss_reduction=args.ctc_loss_reduction,
             pad_token_id=processor.tokenizer.pad_token_id,
             vocab_size=len(processor.tokenizer),
+            ignore_mismatched_sizes=True,
         )
 
         if args.model == "facebook/mms-1b-all":
