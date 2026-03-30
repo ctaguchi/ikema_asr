@@ -849,7 +849,6 @@ if __name__ == "__main__":
     trainer.save_state()
     trainer.save_model()
     
-    lang
     if args.model_name == "facebook/mms-1b-all":
         # Save the adapter
         adapter_file = WAV2VEC2_ADAPTER_SAFE_FILE.format(LANG)
