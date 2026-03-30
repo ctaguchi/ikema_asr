@@ -83,12 +83,15 @@ def load_data(main_dataset: str = "ikema_youtube_asr_full_with_long",
     
     if dict_sentence_dataset is not None:
         dict_sentence_data: Dataset = fetch_data(dict_sentence_dataset,
-                                                load_from_disk=load_from_disk)["train"]
+                                                load_from_disk=load_from_disk)
         print("Loaded dictionary sentence dataset:", dict_sentence_dataset)
         # originally, it has "audio", "transcription", "ikema", "japanese", "romaji", "phoneme"
         # we only need "transcription", "audio", "romaji", and "phoneme"
         dict_sentence_data = dict_sentence_data.remove_columns(["ikema", "japanese"])
-        dataset["train"] = concatenate_datasets([dataset["train"], dict_sentence_data])
+        dataset["train"] = concatenate_datasets([dataset["train"],
+                                                 dict_sentence_data["train"],
+                                                 dict_sentence_data["dev"],
+                                                 dict_sentence_data["test"]])
         # The dict sentence data is used for training only
         
     return dataset
@@ -856,7 +859,7 @@ if __name__ == "__main__":
         safe_save_file(model._get_adapters(), adapter_file, metadata={"format": "pt"})
 
     # if args.push_to_hub:
-    #     model.push_to_hub(args.repo_name,
+    #     model.push_to_hub(args.repo_name, 
     #                       use_auth_token=os.environ["HF_TOKEN"])
     #     tokenizer.push_to_hub(args.repo_name,
     #                           use_auth_token=os.environ["HF_TOKEN"])
