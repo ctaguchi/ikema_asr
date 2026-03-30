@@ -90,7 +90,7 @@ def load_data(main_dataset: str = "ikema_youtube_asr_full_with_long",
         dict_sentence_data = dict_sentence_data.remove_columns(["ikema", "japanese"])
         dataset["train"] = concatenate_datasets([dataset["train"],
                                                  dict_sentence_data["train"],
-                                                 dict_sentence_data["dev"],
+                                                 dict_sentence_data["validation"],
                                                  dict_sentence_data["test"]])
         # The dict sentence data is used for training only
         
